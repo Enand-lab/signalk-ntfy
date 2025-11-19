@@ -255,11 +255,13 @@ For full request/response schemas and validation rules, see the included openApi
 
 ---
 
-## License & ALicense:ts
+## License
 
-**License:** Apache-2.0  
+**License:** Apache-2.0
+Special thanks to an anonymous technical collaborator whose guidance significantly improved the design and robustness of this plugin.
 Thanks to the SignalK community and ntfy.sh for building reliable, open tools.  
 This plugin is not affiliated with ntfy.sh or SignalK. Use at your own risk and in compliance with services.
+
 
 Example: Notification with confirmation
 

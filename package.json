@@ -3,11 +3,12 @@
   "version": "0.0.1",
   "description": "Send SignalK notifications to ntfy.sh or self-hosted ntfy servers",
   "main": "index.js",
-  "keywords": ["signalk-node-server-plugin"],
+  "keywords": ["signalk-node-server-plugin", "signalk-category-notifications"],
   "signalk": {
     "displayName": "ntfy Notifications",
     "enableByDefault": false,
-    "featureType": "notification"
+    "featureType": "notification",
+    "appIcon": "./icon.png"
   },
   "engines": {
     "node": ">=16"

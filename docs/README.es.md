@@ -266,7 +266,7 @@ Ejemplo de respuesta exitosa:
 > Para esquemas completos de solicitud/respuesta y reglas de validación, consulta el archivo openApi.json incluido.
 
 ## Licencia y agradecimientos 
-
+Agradecimiento especial a un colaborador técnico anónimo cuya orientación mejoró notablemente el diseño y robustez de este plugin.
 Licencia: Apache-2.0
 Gracias a la comunidad de SignalK y a ntfy.sh por construir herramientas fiables y abiertas.
 Este plugin no está afiliado a ntfy.sh ni a SignalK. Úsalo bajo tu propia responsabilidad y cumpliendo con los términos de los servicios. 
