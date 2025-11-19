@@ -16,7 +16,7 @@ This plugin offers two levels of integration between your SignalK server and [nt
 
 - Advanced Mode (requires additional setup):  
   Enables bidirectional communication:  
-  - Send custom notifications with interactive buttons (✅/❌).  
+  - Send custom notifications with interactive buttons ("Ok"/"Cancel").  
   - Listen to two configurable ntfy topics: one for commands and one for responses.  
   - Publish any received messages to two predefined SignalK paths:  
     - communications.ntfy.commands  
@@ -77,13 +77,13 @@ Send commands from your phone (e.g., restart a server or turn off lights) and re
 Key features:
 
 - Send custom notifications via REST API (POST /send)  
-- Interactive buttons with HTTP actions (✅/❌)  
+- Interactive buttons with HTTP actions ("Ok"/"Cancel")  
 - Receive responses under communications.ntfy.responses  
 - Native integration with Node-RED, HTTP Shortcuts, etc.  
-- Automatic server switching (local ↔️ ntfy.sh) based on WiFi presence
+- Automatic server switching (local <--> ntfy.sh) based on WiFi presence
 
 Example use case:  
-Notification: “Reboot RPi4?” → User taps ✅ → Command executed via SSH → Confirmation received in SignalK.  
+Notification: “Reboot RPi4?” → User taps "OK" -> Command executed via SSH -> Confirmation received in SignalK.  
 Ideal for embedded control systems where secure, app-free interaction is essential.
 
 ---
@@ -180,7 +180,7 @@ The plugin creates the following SignalK data paths and REST API endpoints to en
   String indicating the ID of the currently active ntfy server (e.g., "local" or "ntfysh"). Updated on startup and every 30 seconds.
 
 - communications.ntfy.responses (advanced mode only)  
-  Received ntfy interactive button responses (e.g., user taps ✅ or ❌) appear here as SignalK deltas.
+  Received ntfy interactive button responses (e.g., user taps "Ok" or "Cancel") appear here as SignalK deltas.
 
 - communications.ntfy.commands (advanced mode only)  
   Custom commands sent via ntfy (e.g., "action:reboot,value:true") are published here for consumption by Node-RED, other plugins, or automation logic.
@@ -205,13 +205,13 @@ Example request:
     "actions": [
       {
         "action": "broadcast",
-        "label": "✅ Yes",
+        "label": "Yes",
         "message": "action:lights_off,value:true",
         "actionId": "cabin_lights_123"
       },
       {
         "action": "broadcast",
-        "label": "❌ No",
+        "label": "No",
         "message": "action:lights_off,value:false",
         "actionId": "cabin_lights_123"
       }
@@ -272,13 +272,13 @@ Example: Notification with confirmation
   "message": "Turn off cabin lights?",
   "actions": [
     {
-      "action": "broadcast","label": "✅ Yes",
+      "action": "broadcast","label": "Yes",
       "message": "action:lights_off,value:true",
       "actionId": "cabin_lights_123"
     },
     {
       "action": "broadcast",
-      "label": "❌ No",
+      "label": "No",
       "message": "action:lights_off,value:false",
       "actionId": "cabin_lights_123"
     }

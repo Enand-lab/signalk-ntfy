@@ -16,7 +16,7 @@ Este plugin ofrece **dos niveles de integración** entre tu servidor SignalK y [
 
 - **Modo avanzado (requiere configuración adicional):**  
   Permite comunicación bidireccional:  
-  - Enviar notificaciones *personalizadas* con botones interactivos (✅/❌).  
+  - Enviar notificaciones *personalizadas* con botones interactivos ("Ok"/"Cancel").  
   - Escuchar dos temas de ntfy configurables: uno para comandos y otro para respuestas.  
   - Publicar cualquier mensaje recibido en esas vías en dos rutas de SignalK:  
     - `communications.ntfy.commands`  
@@ -76,13 +76,13 @@ Envías comandos desde tu teléfono (por ejemplo, reiniciar un servidor o apagar
 
 **Características clave:**  
 - Enviar notificaciones personalizadas mediante la API REST (`POST /send`).  
-- Botones interactivos con acciones HTTP (✅/❌).  
+- Botones interactivos con acciones HTTP ("ok"/"cancel").  
 - Recibir respuestas en la ruta `communications.ntfy.responses`.  
 - Integración nativa con Node-RED, HTTP Shortcuts, etc.  
 - Cambio automático de servidor (local ↔ ntfy.sh) según la presencia en la red WiFi.
 
 **Ejemplo de uso:**  
-Notificación: “¿Reiniciar la RPi4?” → El usuario pulsa ✅ → Comando ejecutado vía SSH → Confirmación recibida en SignalK.  
+Notificación: “¿Reiniciar la RPi4?” → El usuario pulsa "Ok" → Comando ejecutado vía SSH → Confirmación recibida en SignalK.  
 Ideal para sistemas de control embebidos donde se necesita interacción segura y sin apps externas.
 
 ---
@@ -217,13 +217,13 @@ Ejemplo de solicitud:
    "actions": [
     {
        "action": "broadcast",
-       "label": "✅ Sí",
+       "label": "Sí",
        "message": "action:lights_off,value:true",
        "actionId": "cabin_lights_123"
     },
     {
        "action": "broadcast",
-       "label": "❌ No",
+       "label": "No",
        "message": "action:lights_off,value:false",
        "actionId": "cabin_lights_123"
     }
@@ -280,13 +280,13 @@ Ejemplo: notificación con confirmación
    "actions": [
     {
        "action": "broadcast",
-       "label": "✅ Sí",
+       "label": "Sí",
        "message": "action:lights_off, value:true",
        "actionId": "cabin_lights_123"
     },
     {
        "action": "broadcast",
-       "label": "❌ No",
+       "label": "No",
        "message": "action:lights_off, value:false",
        "actionId": "cabin_lights_123"
     }
