@@ -8,7 +8,7 @@ const WebSocket = require('ws');
  * Construye la URL del WebSocket con autenticación (si aplica)
  */
 function buildWsUrl(ntfyUrl, topic, token) {
-  // ✅ VALIDACIÓN ROBUSTA
+  // VALIDACIÓN ROBUSTA
   if (!ntfyUrl) {
     throw new Error('ntfyUrl no está definido');
   }
@@ -39,7 +39,7 @@ function handleIncomingMessage(app, config, topicType, rawData) {
     parsed = { rawMessage: rawData };
   }
 
-  // ✅ SIMPLIFICADO: Path único sin timestamp
+  //  Path único sin timestamp
   const path = topicType === 'response' 
     ? 'communications.ntfy.responses'
     : 'communications.ntfy.commands';
@@ -64,7 +64,7 @@ function handleIncomingMessage(app, config, topicType, rawData) {
  * Inicia los listeners de WebSocket
  */
 function startListener(app, config) {
-  // ✅ USAR CONFIGURACIÓN MULTI-SERVIDOR
+  // USAR CONFIGURACIÓN MULTI-SERVIDOR
   const activeServer = config.servers.find(s => s.id === config.activeServerId);
   if (!activeServer) {
     app.error('[ntfy] No hay servidor activo para el listener');
@@ -84,14 +84,14 @@ function startListener(app, config) {
   const sockets = [];
 
   function connect(topic, topicType) {
-    // ✅ USAR VARIABLES DEL SERVIDOR ACTIVO
+    //  USAR VARIABLES DEL SERVIDOR ACTIVO
     const url = buildWsUrl(ntfyUrl, topic, token);
     const ws = new WebSocket(url);
 
     ws.on('open', () => {
       app.debug(`[ntfy] WebSocket conectado a ${topicType}: ${topic}`);
     });
-    // ✅ MONITOR DE VIDA DEL WEBSOCKET
+    // MONITOR DE VIDA DEL WEBSOCKET
     let lastMessageTime = Date.now();
     const heartbeatInterval = setInterval(() => {
         if (Date.now() - lastMessageTime > 60000) { // 60 segundos sin mensajes
@@ -105,19 +105,19 @@ function startListener(app, config) {
         const msg = data.toString();
         app.debug(`[ntfy] RAW Mensaje recibido (${topicType}): ${msg}`);
         
-        // ✅ ACTUALIZAR INMEDIATAMENTE: cualquier mensaje = conexión viva-- keepalive ntfy.sh
+        // ACTUALIZAR INMEDIATAMENTE: cualquier mensaje = conexión viva-- keepalive ntfy.sh
         lastMessageTime = Date.now();
         
         try {
             const json = JSON.parse(msg);
             
-            // ✅ FILTRAR EVENTOS DE CONEXIÓN
+            //  FILTRAR EVENTOS DE CONEXIÓN
             if (json.event === 'open' || json.event === 'keepalive') {
             app.debug(`[ntfy] Evento WebSocket de conexión: ${json.event}`);
             return;
             }
             
-            // ✅ PROCESAR MENSAJES CON CONTENIDO
+            //  PROCESAR MENSAJES CON CONTENIDO
             if (json.message || json.title || (json.event === 'message' && json.id)) {
             app.debug(`[ntfy] Procesando mensaje ${topicType}:`, JSON.stringify(json, null, 2));
             
@@ -138,7 +138,7 @@ function startListener(app, config) {
             }
             
         } catch (e) {
-            // ✅ PROCESAR MENSAJES DE TEXTO PLANO
+            //  PROCESAR MENSAJES DE TEXTO PLANO
             app.debug(`[ntfy] Mensaje texto plano: ${msg}`);
             if (msg && msg.trim().length > 0) {
             const payload = {

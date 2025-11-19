@@ -42,7 +42,7 @@ function registerApi(app, config, sendNotification, router) {
         return res.status(400).json({ error: 'El campo "message" es obligatorio.' });
       }
 
-      // ✅ CONFIGURACIÓN CORREGIDA - usar multi-servidor
+      // usar multi-servidor
       const activeServer = getActiveServer(config);
       if (!activeServer) {
         app.error('[ntfy API] No hay servidor activo configurado');
@@ -51,7 +51,7 @@ function registerApi(app, config, sendNotification, router) {
 
       app.debug(`[ntfy API] Servidor activo: ${activeServer.url}, Topic: ${topic || config.topic}`);
 
-      // ✅ PASAR EL SERVIDOR ACTIVO A sendNotification
+      // PASAR EL SERVIDOR ACTIVO A sendNotification
       await sendNotification(app, config, { 
         message, 
         title, 
@@ -73,7 +73,7 @@ function registerApi(app, config, sendNotification, router) {
     }
   });
 
-  // Endpoint de status - CORREGIDO
+  // Endpoint de status 
   router.get('/status', (req, res) => {
     const activeServer = getActiveServer(config);
     const status = {
@@ -104,13 +104,13 @@ function registerApi(app, config, sendNotification, router) {
         return res.status(400).json({ error: 'Servidor no encontrado' });
       }
       
-      // ✅ ACTUALIZAR CONFIGURACIÓN EN MEMORIA
+      // ACTUALIZAR CONFIGURACIÓN EN MEMORIA
       config.activeServerId = serverId;
       config.servers.forEach(s => {
         s.isDefault = (s.id === serverId);
       });
       
-      // ✅ GUARDAR EN ARCHIVO PARA PERSISTENCIA
+      //  GUARDAR EN ARCHIVO PARA PERSISTENCIA
       const configPath = path.join(process.env.HOME, '.signalk/plugin-config-data/signalk-ntfy.json');
       
       if (fs.existsSync(configPath)) {
@@ -126,10 +126,10 @@ function registerApi(app, config, sendNotification, router) {
         app.debug(`[ntfy] Configuración persistente actualizada: servidor ${serverId}`);
       }
       
-      // ✅ ACTUALIZAR SIGNALK
+      //  ACTUALIZAR SIGNALK
       publishServerStatus(app, config);
       
-      // ✅ RECONEXIÓN ROBUSTA - USANDO REFERENCIA DIRECTA
+      //  RECONEXIÓN ROBUSTA - USANDO REFERENCIA DIRECTA
       app.debug('[ntfy] === INICIANDO RECONEXIÓN DE LISTENERS ===');
 
       try {
@@ -142,9 +142,9 @@ function registerApi(app, config, sendNotification, router) {
           
           // Ejecutar reconexión
           app.signalkNtfyPlugin.reconnectListeners();
-          app.debug('[ntfy] ✅ Comando de reconexión ejecutado');
+          app.debug('[ntfy]  Comando de reconexión ejecutado');
         } else {
-          app.debug('[ntfy] ❌ No se encontró referencia de plugin, usando método de emergencia...');
+          app.debug('[ntfy]  No se encontró referencia de plugin, usando método de emergencia...');
           
           // MÉTODO DE EMERGENCIA - Reinicio directo
           if (config.listenForCommands) {
@@ -158,7 +158,7 @@ function registerApi(app, config, sendNotification, router) {
             // Crear nuevos listeners
             setTimeout(() => {
               app.signalkNtfyListener = startListener(app, config);
-              app.debug('[ntfy] ✅ Listeners recreados (método emergencia)');
+              app.debug('[ntfy] Listeners recreados (método emergencia)');
             }, 1000);
           }
         }

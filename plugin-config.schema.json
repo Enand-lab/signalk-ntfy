@@ -82,7 +82,7 @@
     "commandsTopic": {
         "type": "string",
         "title": "Commands topic",
-        "description": "⚠️ HIGH RISK: Receives executable commands. Use a long, random name (e.g., cM5nP8qR2t). Never leave default or predictable names. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
+        "description": "HIGH RISK: Receives executable commands. Use a long, random name (e.g., cM5nP8qR2t). Never leave default or predictable names. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
     }
   }
 }

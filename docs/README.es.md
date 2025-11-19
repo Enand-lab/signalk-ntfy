@@ -44,11 +44,11 @@ ntfy es una alternativa ligera, segura, autoalojable y sin dependencias frente a
 
 | Característica        | ntfy                            | Alternativas comunes        |
 |------------------------|----------------------------------|-----------------------------|
-| Autoalojable           | ✅ Sí (funciona 100% sin internet) | ❌ Generalmente no          |
-| Sin necesidad de cuenta| ✅ Usa temas como “contraseñas”    | ❌ Requiere registro        |
-| Bidireccional          | ✅ WebSockets + botones interactivos| ⚠️ Limitado o no nativo     |
-| Código abierto         | ✅ Apache 2.0 / GPLv2             | ❌ Cerrado o parcial        |
-| Amigable con la red    | ✅ Mensajes pequeños, bajo ancho de banda | ⚠️ Suele ser más pesado |
+| Autoalojable           |  Sí (funciona 100% sin internet) |  Generalmente no          |
+| Sin necesidad de cuenta|  Usa temas como “contraseñas”    |  Requiere registro        |
+| Bidireccional          |  WebSockets + botones interactivos| Limitado o no nativo     |
+| Código abierto         |  Apache 2.0 / GPLv2             | Cerrado o parcial        |
+| Amigable con la red    |  Mensajes pequeños, bajo ancho de banda | Suele ser más pesado |
 
 Ideal para entornos marinos: funciona en redes locales, no depende de servicios externos y consume pocos recursos.
 
@@ -92,7 +92,7 @@ Ideal para sistemas de control embebidos donde se necesita interacción segura y
 Para recibir notificaciones push en tu teléfono, necesitas la app oficial de ntfy:  
 - [Android (Google Play)](https://play.google.com/store/apps/details?id=io.heckel.ntfy)  
 - [Android (F-Droid)](https://f-droid.org/packages/io.heckel.ntfy/)  
-- [iOS (App Store)](https://apps.apple.com/us/app/ntfy/id1607245910)  
+- [iOS (App Store)](https://apps.apple.com/us/app/ntfy/id1625396347)  
 
 La app se ejecuta en segundo plano, escucha tus temas y entrega notificaciones instantáneas y fiables, incluso cuando el teléfono está inactivo. **No requiere cuenta.**
 
@@ -149,7 +149,7 @@ Si necesitas ACLs completas, autenticación o aislamiento TLS, aloja ntfy en tu 
 
 ## Configuración en red local (¡importante!)
 
-❌ **Nunca uses `localhost`** en la URL del servidor si interactúas desde dispositivos móviles.  
+ **Nunca uses `localhost`** en la URL del servidor si interactúas desde dispositivos móviles.  
 Tu teléfono interpreta `localhost` como sí mismo, no como tu servidor SignalK.
 
 Siempre usa la IP local real de tu servidor:

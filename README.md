@@ -44,11 +44,11 @@ ntfy is a lightweight, secure, self-hostable, and dependency-free alternative to
 
 | Feature               | ntfy                              | Common Alternatives        |
 |-----------------------|-----------------------------------|----------------------------|
-| Self-hostable         | ✅ Yes (100% offline possible)    | ❌ Usually not             |
-| No account required   | ✅ Use topics like “passwords”    | ❌ Registration required   |
-| Bidirectional         | ✅ WebSockets + interactive buttons | ⚠️ Limited or non-native  |
-| Open Source           | ✅ Apache 2.0 / GPLv2             | ❌ Closed or partial       |
-| Network-friendly      | ✅ Small messages, low bandwidth  | ⚠️ Often heavier           |
+| Self-hostable         |  Yes (100% offline possible)    |  Usually not             |
+| No account required   |  Use topics like “passwords”    |  Registration required   |
+| Bidirectional         |  WebSockets + interactive buttons | Limited or non-native  |
+| Open Source           |  Apache 2.0 / GPLv2             |  Closed or partial       |
+| Network-friendly      |  Small messages, low bandwidth  | Often heavier           |
 
 Ideal for marine environments: works on local networks, doesn’t rely on external services, and uses minimal resources.
 
@@ -93,7 +93,7 @@ Ideal for embedded control systems where secure, app-free interaction is essenti
 To receive push notifications on your phone, you’ll need the official ntfy app:  
 - [Android (Google Play)](https://play.google.com/store/apps/details?id=io.heckel.ntfy)  
 - [Android (F-Droid)](https://f-droid.org/packages/io.heckel.ntfy/)  
-- [iOS (App Store)](https://apps.apple.com/us/app/ntfy/id1607245910)  
+- [iOS (App Store)](https://apps.apple.com/us/app/ntfy/id1625396347)  
 
 The app runs in the background, listens to your topics, and delivers instant, reliable notifications — even when your phone is idle. No account needed.
 
@@ -258,6 +258,7 @@ For full request/response schemas and validation rules, see the included openApi
 ## License
 
 **License:** Apache-2.0
+
 Special thanks to an anonymous technical collaborator whose guidance significantly improved the design and robustness of this plugin.
 Thanks to the SignalK community and ntfy.sh for building reliable, open tools.  
 This plugin is not affiliated with ntfy.sh or SignalK. Use at your own risk and in compliance with services.

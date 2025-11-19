@@ -7,7 +7,7 @@ const fetch = require('node-fetch');
 async function sendNotification(app, config, opts) {
   const { message, title, actions, topic, server } = opts; // ← 'server' en lugar de 'serverId'
   
-  // ✅ Determinar qué servidor usar (lógica corregida)
+  //  Determinar qué servidor usar (lógica corregida)
   const targetServer = server || config.servers.find(s => s.id === config.activeServerId);
   
   if (!targetServer) {
@@ -38,13 +38,13 @@ async function sendNotification(app, config, opts) {
     title: title
   };
 
-  // ✅ CONFIGURACIÓN DE ACCIONES CORREGIDA
+  //  CONFIGURACIÓN DE ACCIONES
   if (actions && Array.isArray(actions)) {
     body.actions = actions.map(action => {
       if (action.action === 'broadcast') {
         const actionId = action.actionId || `action_${Date.now()}`;
         
-        // ✅ USAR EL SERVIDOR ACTIVO PARA LAS ACCIONES
+        //USAR EL SERVIDOR ACTIVO PARA LAS ACCIONES
         let actionUrl = targetServer.url.trim(); // ← Usar targetServer, no config.ntfyUrl
         
         // Determinar protocolo automáticamente
@@ -57,7 +57,7 @@ async function sendNotification(app, config, opts) {
           actionUrl = 'http://' + actionUrl;
         }
         
-        // ✅ Siempre usar el topic de respuestas configurado
+        // Siempre usar el topic de respuestas configurado
         actionUrl = actionUrl.replace(/\/$/, '') + `/${encodeURIComponent(config.responsesTopic)}`;
         
         return {
@@ -75,7 +75,7 @@ async function sendNotification(app, config, opts) {
     }).filter(a => a);
   }
 
-  // ✅ HEADERS CON TOKEN DEL SERVIDOR CORRECTO
+  // HEADERS CON TOKEN DEL SERVIDOR CORRECTO
   const headers = { 'Content-Type': 'application/json' };
   if (targetServer.token) { // ← Usar token del servidor específico
     headers['Authorization'] = `Bearer ${targetServer.token}`;

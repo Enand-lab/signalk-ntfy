@@ -9,33 +9,33 @@ let currentConfig = {};
 let listenerInstance = null;
 let unsubscribes = [];
 
-// ✅ SIMPLIFICADO: Función para determinar servidor activo
+//  Función para determinar servidor activo
 function getActiveServer(config) {
-  // ✅ PRIMERO: Ver si hay un servidor que ya estaba como default
+  //  PRIMERO: Ver si hay un servidor que ya estaba como default
   const defaultServer = config.servers.find(s => s.isDefault);
   if (defaultServer) {
     currentApp.debug(`[ntfy] Usando servidor default persistente: ${defaultServer.id}`);
     return defaultServer.id;
   }
   
-  // ✅ SEGUNDO: Si no hay default, usar el primero
+  //  SEGUNDO: Si no hay default, usar el primero
   if (config.servers.length > 0) {
     currentApp.debug(`[ntfy] No hay default persistente. Usando: ${config.servers[0].id}`);
     return config.servers[0].id;
   }
   
-  // ✅ TERCERO: Fallback
+  //  TERCERO: Fallback
   currentApp.error('[ntfy] No hay servidores configurados');
   return 'principal';
 }
 
-// ✅ SIMPLIFICADO: Publicar estado del servidor en SignalK
+//  Publicar estado del servidor en SignalK
 function publishServerStatus(app, config) {
   const activeServer = config.servers.find(s => s.id === config.activeServerId);
   
   if (!activeServer) return;
   
-  // ✅ SOLO el ID como string simple
+  //  SOLO el ID como string simple
   app.handleMessage('signalk-ntfy', {
     updates: [{
       values: [{
@@ -62,12 +62,12 @@ module.exports = function(app) {
     
     // Inicio del plugin
     start: (settings, restartPlugin) => {
-      // ✅ DETECTAR CAMBIO DE SERVIDOR PARA CAMBIOS VÍA UI
+      //  DETECTAR CAMBIO DE SERVIDOR PARA CAMBIOS VÍA UI
       const oldServerId = currentConfig.activeServerId;
       
       currentConfig = settings || {};
       
-      // ✅ NUEVO: Inicializar servidores si no existen
+      //  Inicializar servidores si no existen
       if (!currentConfig.servers || !Array.isArray(currentConfig.servers)) {
         currentConfig.servers = [
           {
@@ -86,14 +86,14 @@ module.exports = function(app) {
         return;
       }
 
-      // ✅ Validar que todos los IDs sean únicos
+      // Validar que todos los IDs sean únicos
       const serverIds = currentConfig.servers.map(s => s.id);
       const uniqueIds = new Set(serverIds);
       if (serverIds.length !== uniqueIds.size) {
         currentApp.error('[ntfy] Hay IDs de servidor duplicados. Corrige la configuración.');
       }
       
-      // ✅ NUEVO: Determinar servidor activo
+      // Determinar servidor activo
       currentConfig.activeServerId = getActiveServer(currentConfig);
       const activeServer = currentConfig.servers.find(s => s.id === currentConfig.activeServerId);
       
@@ -126,7 +126,7 @@ module.exports = function(app) {
         return;
       }
 
-      // ✅ NUEVO: Publicar estado del servidor
+      // Publicar estado del servidor
       publishServerStatus(currentApp, currentConfig);
 
       // Normalizar niveles
@@ -134,13 +134,13 @@ module.exports = function(app) {
         ? currentConfig.levels
         : ['alert'];
 
-      // ✅ ACTUALIZADO: Validar configuración mínima (ahora con servidores)
+      // Validar configuración mínima (ahora con servidores)
       if (!activeServer.url || !currentConfig.topic) {
         currentApp.error('[ntfy] Configuración incompleta: URL del servidor y topic son obligatorios');
         return;
       }
 
-      // ✅ Validar configuración de listener
+      //Validar configuración de listener
       if (currentConfig.listenForCommands) {
         if (!currentConfig.responsesTopic || !currentConfig.commandsTopic) {
           currentApp.error('[ntfy] listenForCommands activado pero falta configurar responsesTopic o commandsTopic');
@@ -183,7 +183,7 @@ module.exports = function(app) {
                 title += ' (Silenciada)';
               }
 
-              // ✅ ACTUALIZADO: Enviar notificación con configuración actual
+              //  Enviar notificación con configuración actual
               sendNotification(currentApp, currentConfig, { message, title })
                 .catch(err => {
                   currentApp.error(`[ntfy] Error al enviar notificación: ${err.message}`);
@@ -199,7 +199,7 @@ module.exports = function(app) {
         currentApp.debug('[ntfy] Listener de comandos iniciado');
       }
 
-      // ✅ NUEVO: Intervalo para publicar estado periódicamente
+      // Intervalo para publicar estado periódicamente
       const statusInterval = setInterval(() => {
         publishServerStatus(currentApp, currentConfig);
       }, 30000);
@@ -207,7 +207,7 @@ module.exports = function(app) {
       // Guardar referencia para limpiar luego
       unsubscribes.push(() => clearInterval(statusInterval));
 
-      // ✅ REFERENCIA ROBUSTA PARA RECONEXIÓN (ALMACENAR EN APP)
+      // REFERENCIA ROBUSTA PARA RECONEXIÓN (ALMACENAR EN APP)
       app.signalkNtfyPlugin = {
         listenerInstance: listenerInstance,
         config: currentConfig,
@@ -253,7 +253,7 @@ module.exports = function(app) {
         listenerInstance = null;
       }
       
-      // ✅ LIMPIAR REFERENCIA
+      // LIMPIAR REFERENCIA
       if (currentApp.signalkNtfyPlugin) {
         currentApp.signalkNtfyPlugin.listenerInstance = null;
       }
@@ -274,7 +274,7 @@ module.exports = function(app) {
     }
   };
 
-  // ✅ OpenAPI documentation
+  //  OpenAPI documentation
   const openapi = require('./openApi.json');
   plugin.getOpenApi = () => openapi;
 
