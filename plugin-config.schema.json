@@ -1,0 +1,88 @@
+{
+  "type": "object",
+  "title": "ntfy Notifications Plugin",
+  "description": "Two Operation Modes: Basic Mode: Automatic notifications — configure main server and topic — receive SignalK alerts automatically. Advanced Mode: Bidirectional communication — send custom notifications — receive commands and send responses — integrate with Node-RED and HTTP Shortcuts.",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable ntfy notifications",
+      "default": true
+    },
+    "servers": {
+      "type": "array",
+      "title": "Configured ntfy servers",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "url"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Unique server ID*",
+            "description": "Must be unique. Example: \"local\", \"ntfysh\", \"backup\"",
+            "default": "main"
+          },
+          "name": {
+            "type": "string",
+            "title": "Descriptive name*",
+            "default": "Main Server"
+          },
+          "url": {
+            "type": "string",
+            "title": "Server URL*",
+            "description": "Use the full IP address (e.g., http://192.168.1.100) for local servers. Never use 'localhost'—your mobile device will interpret it as itself, not your boat's server.",
+            "default": "https://ntfy.sh"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token (optional)",
+            "format": "password"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "title": "Default server",
+            "default": false
+          }
+        }
+      },
+      "default": [
+        {
+          "id": "main",
+          "name": "Main Server",
+          "url": "https://ntfy.sh",
+          "isDefault": true
+        }
+      ]
+    },
+    "topic": {
+        "type": "string",
+        "title": "Main topic for SignalK messages",
+        "description": "⚠️ Required for basic mode. Choose a random, hard-to-guess name (e.g., xK9mQ2p_aB3). Avoid boat names or common words. Public on ntfy.sh. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
+    },
+    "levels": {
+      "type": "array",
+      "title": "Alert levels to send",
+      "format": "checkboxes",
+      "items": {
+        "type": "string",
+        "enum": ["normal", "alert", "warn", "alarm", "emergency"]
+      },
+      "default": ["alert", "alarm", "emergency"]
+    },
+    "listenForCommands": {
+      "type": "boolean",
+      "title": "Listen for commands and responses from ntfy",
+      "description": "ADVANCED MODE — Enables sending custom notifications and receiving commands. Changes require a SignalK server restart to take effect.",
+      "default": false
+    },
+    "responsesTopic": {
+        "type": "string",
+        "title": "Responses topic",
+        "description": "⚠️ Required if Advanced Mode is enabled. Use a unique, random topic name (e.g., rZ7wL4vN8s). Public on ntfy.sh. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
+    },
+    "commandsTopic": {
+        "type": "string",
+        "title": "Commands topic",
+        "description": "⚠️ HIGH RISK: Receives executable commands. Use a long, random name (e.g., cM5nP8qR2t). Never leave default or predictable names. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
+    }
+  }
+}

@@ -1,0 +1,303 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SignalK ntfy Plugin API",
+    "description": "API para enviar notificaciones interactivas a ntfy desde otros plugins o sistemas externos",
+    "version": "1.0.1",
+    "contact": {
+      "name": "SignalK ntfy Plugin",
+      "url": "https://github.com/tu-usuario/signalk-ntfy"
+    }
+  },
+  "servers": [
+    {
+      "url": "/plugins/signalk-ntfy",
+      "description": "SignalK ntfy plugin API"
+    }
+  ],
+  "paths": {
+    "/send": {
+      "post": {
+        "summary": "Envía una notificación a ntfy",
+        "description": "Envía una notificación con opciones interactivas (botones) al servidor ntfy configurado",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Mensaje principal de la notificación",
+                    "example": "¿Apagar motor principal?"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Título de la notificación",
+                    "example": "Control Remoto"
+                  },
+                  "topic": {
+                    "type": "string",
+                    "description": "Topic override (opcional, usa el configurado por defecto)",
+                    "example": "boat_alerts"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "description": "Acciones interactivas (botones)",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "enum": ["broadcast"],
+                          "description": "Tipo de acción"
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "Texto del botón",
+                          "example": "✅ Sí"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Mensaje que se enviará al topic de respuestas",
+                          "example": "accion:apagar_motor,valor:true"
+                        },
+                        "actionId": {
+                          "type": "string",
+                          "description": "ID único para identificar la respuesta",
+                          "example": "motor_principal_123"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "title": "Control de Luces",
+                "message": "¿Apagar luces de cabina?",
+                "actions": [
+                  {
+                    "action": "broadcast",
+                    "label": "✅ Sí",
+                    "message": "accion:apagar_luces,valor:true",
+                    "actionId": "luces_cabina_123"
+                  },
+                  {
+                    "action": "broadcast",
+                    "label": "❌ No",
+                    "message": "accion:apagar_luces,valor:false",
+                    "actionId": "luces_cabina_123"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notificación enviada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "sent"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-10-29T20:32:05.420Z"
+                    },
+                    "topic": {
+                      "type": "string",
+                      "example": "boat_alerts"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud incorrecta - falta el campo message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "El campo \"message\" es obligatorio."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error al conectar con el servidor ntfy"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Estado del plugin ntfy",
+        "description": "Devuelve información sobre el estado y configuración del plugin",
+        "responses": {
+          "200": {
+            "description": "Estado del plugin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "active"
+                    },
+                    "plugin": {
+                      "type": "string",
+                      "example": "signalk-ntfy"
+                    },
+                    "configured": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "activeServer": {
+                        "type": "string",
+                        "example": "local"
+                    },
+                    "defaultTopic": {
+                      "type": "string",
+                      "example": "boat_alerts"
+                    },
+                    "availableServers": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-10-29T20:32:05.420Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/server": {
+      "put": {
+        "summary": "Cambia el servidor ntfy activo",
+        "description": "Establece un nuevo servidor como activo y persistente. Reinicia los listeners si el modo avanzado está habilitado.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["serverId"],
+                "properties": {
+                  "serverId": {
+                    "type": "string",
+                    "description": "ID del servidor ntfy a activar (debe existir en la configuración)",
+                    "example": "local"
+                  }
+                }
+              },
+              "example": {
+                "serverId": "local"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Servidor cambiado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "updated"
+                    },
+                    "activeServer": {
+                      "type": "string",
+                      "example": "local"
+                    },
+                    "persistent": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "listenersRestarted": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-11-04T12:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud incorrecta - serverId no válido o no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Servidor no encontrado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno al actualizar la configuración",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error al guardar la configuración persistente"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

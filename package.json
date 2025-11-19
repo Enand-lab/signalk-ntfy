@@ -1,0 +1,28 @@
+{
+  "name": "signalk-ntfy",
+  "version": "0.0.1",
+  "description": "Send SignalK notifications to ntfy.sh or self-hosted ntfy servers",
+  "main": "index.js",
+  "keywords": ["signalk-node-server-plugin"],
+  "signalk": {
+    "displayName": "ntfy Notifications",
+    "enableByDefault": false,
+    "featureType": "notification"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "ws": "^8.16.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Enand-lab/signalk-ntfy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Enand-lab/signalk-ntfy/issues"
+  },
+  "homepage": "https://github.com/Enand-lab/signalk-ntfy"
+}
