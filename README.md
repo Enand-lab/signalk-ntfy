@@ -185,7 +185,7 @@ The plugin creates the following SignalK data paths and REST API endpoints to en
 - communications.ntfy.commands (advanced mode only)  
   Custom commands sent via ntfy (e.g., "action:reboot,value:true") are published here for consumption by Node-RED, other plugins, or automation logic.
 
-✅ These paths allow seamless integration with SignalK-compatible tools without polling or external dependencies.
+These paths allow seamless integration with SignalK-compatible tools without polling or external dependencies.
 
 ###  REST API Endpoints
 
