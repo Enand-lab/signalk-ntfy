@@ -1,42 +1,36 @@
 # Changelog
 
-All notable changes to the `signalk-ntfy` plugin will be documented in this file.
+All notable changes to the `signalk-ntfy` plugin are documented in this file.  
+This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
-## [0.0.2] - 2025-11-04
+## [0.0.3] - 2025-11-25
 
 ### Fixed
 
-- **WebSocket stability**: Fixed false inactivity detection by correctly counting `keepalive` messages from ntfy.sh as valid activity.
-- **Message handling**: Ensure all plain-text and JSON messages are properly parsed and forwarded to SignalK paths.
+- **WebSocket instability**: implemented client-side `ping` and unified topic subscription to prevent disconnections in NAT/firewall environments (e.g., marine networks).
+- **Risk of rate-limiting on `ntfy.sh`**: reduced subscription count by 50% by using a single WebSocket connection for both command and response topics.
 
 ### Changed
 
-- **Conservative reconnect strategy for ntfy.sh**:  
-  When using the public `ntfy.sh` server, WebSocket reconnection delay is now **10 minutes** (600,000 ms) to comply with service limits (~150 subscriptions/day) and prevent IP bans.
-- **Local servers** retain fast reconnection (5 seconds) for responsive local networks.
-- **Added protection** against infinite reconnection loops (max 5 attempts before temporary backoff).
+- **Exponential backoff**: reconnection delays now follow `[5, 10, 15, 20, 30, 45, 60, 120]` seconds to avoid overwhelming the server during outages.
+- **Inactivity timeout**: increased from 60 seconds to 300 seconds (5 minutes) to align with real-world `ntfy.sh` behaviour and prevent premature reconnection.
 
 ### Added
 
-- **Heartbeat monitor**: Automatically detects and recovers from silently broken WebSocket connections (common in NAT/firewall environments like marine networks).
-- **Improved debug logging**: Clearer messages for connection state, reconnection attempts, and server detection.
+- **Full compatibility** with existing configurations — no changes required in UI or `package.json` beyond version bump.
+- **Robust connection management** inspired by the official ntfy Android client.
 
-### Security
+> 💡 **Recommendation**: Users of `ntfy.sh` are strongly encouraged to update to this version to avoid service disruption due to connection throttling.
 
-- **Reduced risk of rate-limiting**: The new conservative strategy makes the plugin safe for long-term use with `ntfy.sh`, even on unstable connections (e.g., mobile or remote marine networks).
+## [0.0.2] - 2025-11-04
 
-> 📌 **Recommendation**: Users of `ntfy.sh` are strongly encouraged to update to this version to avoid service disruption due to connection throttling.
+### Changed
+
+- Introduced conservative reconnection strategy for `ntfy.sh` (10-minute delay) to comply with public server limits.
+- Added protection against infinite reconnection loops (max 5 attempts).
 
 ## [0.0.1] - 2025-11-03
 
 ### Added
 
-- Initial release of the `signalk-ntfy` plugin.
-- Support for **basic mode**: automatic SignalK notification forwarding to ntfy topics.
-- Support for **advanced mode**: bidirectional communication via WebSockets (commands and responses).
-- Multi-server configuration (local + remote).
-- REST API endpoint (`/send`) for custom notifications.
-- Token-based authentication.
-- Dynamic server switching via UI or API.
+- Initial release: basic and advanced modes, REST API, WebSocket bidirectional communication, multi-server support.
