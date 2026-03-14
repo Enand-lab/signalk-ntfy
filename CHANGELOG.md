@@ -3,6 +3,19 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.4] - 2026-03-14
+
+### Added
+- Mapeo automático de estado SignalK → prioridad ntfy (1-5)
+- Soporte para campo 'state' en API /send
+- Priorización de notificaciones según severidad (alert, alarm, emergency)
+
+### Changed
+- Mejora en listener.js: corrección de comentario INACTIVITY_TIMEOUT
+
+### Fixed
+- Notificaciones ahora respetan el nivel de urgencia de SignalK
+
 ## [0.0.3] - 2025-11-25
 
 ### Fixed

@@ -1,6 +1,15 @@
 // sender.js
 const fetch = require('node-fetch');
 
+// Valores por defecto según feature request #XX
+const DEFAULT_STATE_PRIORITY_MAP = {
+  'normal': 2,      // low: silencioso
+  'alert': 3,       // default: notificación estándar
+  'warn': 3,        // default
+  'alarm': 4,       // high: bypass DND en algunos dispositivos
+  'emergency': 5    // urgent: alerta persistente, bypass DND
+};
+
 /**
  * Envía una notificación a ntfy.
  */
@@ -37,6 +46,17 @@ async function sendNotification(app, config, opts) {
     message: message || '',
     title: title
   };
+  
+  // --- Mapeo de prioridad según estado de SignalK ---
+  const signalKState = opts.state || (opts.value && opts.value.state) || 'normal';
+  const priorityMap = targetServer.priorityMap || DEFAULT_STATE_PRIORITY_MAP;
+  const ntfyPriority = priorityMap[signalKState] !== undefined 
+  ? priorityMap[signalKState] 
+  : 3;
+  body.priority = ntfyPriority;
+  app.debug(`[ntfy] Estado SignalK: '${signalKState}' → prioridad ntfy: ${ntfyPriority}`);
+  // --- Fin mapeo de prioridad ---
+  
 
   //  CONFIGURACIÓN DE ACCIONES
   if (actions && Array.isArray(actions)) {

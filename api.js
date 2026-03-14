@@ -36,7 +36,7 @@ function registerApi(app, config, sendNotification, router) {
     try {
       app.debug('[ntfy API] Petición recibida:', JSON.stringify(req.body));
       
-      const { message, title, actions, topic } = req.body;
+      const { message, title, actions, topic, state } = req.body;
       
       if (!message) {
         return res.status(400).json({ error: 'El campo "message" es obligatorio.' });
@@ -57,6 +57,7 @@ function registerApi(app, config, sendNotification, router) {
         title, 
         actions, 
         topic,
+        state,
         server: activeServer
       });
       

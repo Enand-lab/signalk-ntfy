@@ -184,10 +184,14 @@ module.exports = function(app) {
               }
 
               //  Enviar notificación con configuración actual
-              sendNotification(currentApp, currentConfig, { message, title })
-                .catch(err => {
-                  currentApp.error(`[ntfy] Error al enviar notificación: ${err.message}`);
-                });
+              sendNotification(currentApp, currentConfig, { 
+                message, 
+                title, 
+                state: v.value.state  // Envio el tipo de notificación
+              })
+              .catch(err => {
+                currentApp.error(`[ntfy] Error al enviar notificación: ${err.message}`);
+              });
             });
           });
         }
