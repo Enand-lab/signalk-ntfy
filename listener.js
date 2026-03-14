@@ -93,7 +93,7 @@ function startListener(app, config) {
   let reconnectAttempts = 0;
 
   const RETRY_SECONDS = [5, 10, 15, 20, 30, 45, 60, 120];
-  const INACTIVITY_TIMEOUT = 600000; // 5 minutos
+  const INACTIVITY_TIMEOUT = 600000; // 10 minutos
 
   function connect() {
     const url = buildWsUrl(ntfyUrl, combinedTopics, token);
