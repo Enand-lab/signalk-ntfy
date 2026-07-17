@@ -66,6 +66,12 @@ You only need:
 - Enable the plugin and select alert levels  
 - The ntfy mobile app
 
+#### Anti-Spam Filtering (Configurable) V 0.0.5 +
+To prevent notification fatigue from high-frequency SignalK paths (e.g., anchor alarms updating at 1Hz), the plugin includes a built-in duplicate filter:
+- **Filter duplicate notifications**: Enable this option in the plugin settings to block repeated alerts from the same SignalK path.
+- **Minimum interval (minutes)**: Set the cooldown period between allowed notifications for the same path (default: 5 minutes). 
+*Note: This filtering happens locally on the SignalK server, saving bandwidth and preventing mobile device spam.*
+
 Example use case:  
 “Engine overheating” → Instant push notification on your phone.
 

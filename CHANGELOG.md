@@ -3,6 +3,11 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.6] - 2026-07-18
+
+### Added
+- Documentation update: Added "Anti-Spam Filtering" section to README.md to explain the duplicate notification filter introduced in v0.0.5.
+
 ## [0.0.5] - 2026-07-18
 
 ### Added
