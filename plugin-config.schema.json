@@ -58,6 +58,19 @@
         "title": "Main topic for SignalK messages",
         "description": "⚠️ Required for basic mode. Choose a random, hard-to-guess name (e.g., xK9mQ2p_aB3). Avoid boat names or common words. Public on ntfy.sh. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
     },
+    "filterDuplicates": {
+      "type": "boolean",
+      "title": "Filter duplicate notifications",
+      "description": "Prevents sending multiple notifications for the same path in a short interval (e.g., anchor alarm).",
+      "default": false
+    },
+    "minIntervalMinutes": {
+      "type": "number",
+      "title": "Minimum interval (minutes)",
+      "description": "Minimum time that must pass between notifications for the same path. Only applies if the filter is enabled.",
+      "default": 5,
+      "minimum": 1
+    },
     "levels": {
       "type": "array",
       "title": "Alert levels to send",

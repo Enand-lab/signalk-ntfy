@@ -1,73 +1,77 @@
 // sender.js
 const fetch = require('node-fetch');
 
-// Valores por defecto según feature request #XX
+// Memoria para el filtro de duplicados: guarda la última marca de tiempo por path
+const lastNotificationTime = {};
+
 const DEFAULT_STATE_PRIORITY_MAP = {
-  'normal': 2,      // low: silencioso
-  'alert': 3,       // default: notificación estándar
-  'warn': 3,        // default
-  'alarm': 4,       // high: bypass DND en algunos dispositivos
-  'emergency': 5    // urgent: alerta persistente, bypass DND
+  'normal': 2,
+  'alert': 3,
+  'warn': 3,
+  'alarm': 4,
+  'emergency': 5
 };
 
-/**
- * Envía una notificación a ntfy.
- */
 async function sendNotification(app, config, opts) {
-  const { message, title, actions, topic, server } = opts; // ← 'server' en lugar de 'serverId'
+  const { message, title, actions, topic, server, state, value, path } = opts;
   
-  //  Determinar qué servidor usar (lógica corregida)
   const targetServer = server || config.servers.find(s => s.id === config.activeServerId);
-  
   if (!targetServer) {
     app.error('[ntfy] No se pudo determinar el servidor objetivo');
     app.error(`[ntfy] Servidores disponibles: ${JSON.stringify(config.servers?.map(s => s.id))}`);
-    app.error(`[ntfy] Servidor activo: ${config.activeServerId}`);
+    app.error(`[ntfy] Servidor activo configurado: ${config.activeServerId}`);
     throw new Error('No hay servidor ntfy configurado o activo');
   }
   
   const targetTopic = topic || config.topic;
-  let fullUrl = targetServer.url.trim();
+  const currentPath = path || 'unknown_path';
   
-  // Asegurar que tenga el protocolo
+  // --- LÓGICA DE FILTRADO DE DUPLICADOS (v0.0.5) ---
+  if (config.filterDuplicates) {
+    const now = Date.now();
+    const intervalMs = (config.minIntervalMinutes || 5) * 60 * 1000;
+    const lastTime = lastNotificationTime[currentPath] || 0;
+    
+    if (now - lastTime < intervalMs) {
+      const secondsAgo = Math.floor((now - lastTime) / 1000);
+      app.debug(`[ntfy] Notificación filtrada (spam): ${currentPath}. Último envío hace ${secondsAgo}s. Intervalo mínimo: ${config.minIntervalMinutes}m`);
+      return; // Salir silenciosamente, no se envía nada
+    }
+    
+    // Actualizar la última vez que se envió una notificación para este path
+    lastNotificationTime[currentPath] = now;
+  }
+  // ----------------------------------------
+  
+  let fullUrl = targetServer.url.trim();
   if (!fullUrl.startsWith('http')) {
     fullUrl = 'https://' + fullUrl;
   }
   
-  // Eliminar slash final si existe y añadir el endpoint correcto
-  fullUrl = fullUrl.replace(/\/$/, '') + '/';
+  // CORREGIDO: Expresión regular válida y añadir el topic a la ruta
+  fullUrl = fullUrl.replace(/\/$/, '') + '/' + encodeURIComponent(targetTopic);
   
   app.debug(`[ntfy] Enviando a servidor: ${targetServer.name} (${targetServer.id})`);
   app.debug(`[ntfy] URL: ${fullUrl}`);
-  app.debug(`[ntfy] Topic: ${targetTopic}`);
-
+  
   const body = {
-    topic: targetTopic,
     message: message || '',
-    title: title
+    title: title || 'SignalK Alert'
   };
   
-  // --- Mapeo de prioridad según estado de SignalK ---
-  const signalKState = opts.state || (opts.value && opts.value.state) || 'normal';
+  const signalKState = state || (value && value.state) || 'normal';
   const priorityMap = targetServer.priorityMap || DEFAULT_STATE_PRIORITY_MAP;
-  const ntfyPriority = priorityMap[signalKState] !== undefined 
-  ? priorityMap[signalKState] 
-  : 3;
-  body.priority = ntfyPriority;
-  app.debug(`[ntfy] Estado SignalK: '${signalKState}' → prioridad ntfy: ${ntfyPriority}`);
-  // --- Fin mapeo de prioridad ---
+  const ntfyPriority = priorityMap[signalKState] !== undefined ? priorityMap[signalKState] : 3;
   
-
-  //  CONFIGURACIÓN DE ACCIONES
+  body.priority = ntfyPriority;
+  app.debug(`[ntfy] Estado SignalK: '${signalKState}' -> prioridad ntfy: ${ntfyPriority}`);
+  
   if (actions && Array.isArray(actions)) {
     body.actions = actions.map(action => {
       if (action.action === 'broadcast') {
         const actionId = action.actionId || `action_${Date.now()}`;
+        let actionUrl = targetServer.url.trim();
         
-        //USAR EL SERVIDOR ACTIVO PARA LAS ACCIONES
-        let actionUrl = targetServer.url.trim(); // ← Usar targetServer, no config.ntfyUrl
-        
-        // Determinar protocolo automáticamente
         if (actionUrl.includes('ntfy.sh')) {
           actionUrl = actionUrl.replace(/^http:/, 'https:');
           if (!actionUrl.startsWith('http')) {
@@ -77,32 +81,30 @@ async function sendNotification(app, config, opts) {
           actionUrl = 'http://' + actionUrl;
         }
         
-        // Siempre usar el topic de respuestas configurado
-        actionUrl = actionUrl.replace(/\/$/, '') + `/${encodeURIComponent(config.responsesTopic)}`;
+        actionUrl = actionUrl.replace(/\/$/, '') + '/' + encodeURIComponent(config.responsesTopic);
         
         return {
           action: "http",
           label: action.label,
           url: actionUrl,
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain"
-          },
+          headers: { "Content-Type": "text/plain" },
           body: `${action.message}, actionId:${actionId}`
         };
       }
       return null;
     }).filter(a => a);
   }
-
-  // HEADERS CON TOKEN DEL SERVIDOR CORRECTO
+  
   const headers = { 'Content-Type': 'application/json' };
-  if (targetServer.token) { // ← Usar token del servidor específico
-    headers['Authorization'] = `Bearer ${targetServer.token}`;
-    app.debug('[ntfy] Usando token de autenticación');
+  if (targetServer.token && typeof targetServer.token === 'string' && targetServer.token.trim() !== '') {
+    headers['Authorization'] = `Bearer ${targetServer.token.trim()}`;
+    app.debug('[ntfy] Usando token de autenticación (Bearer)');
+  } else {
+    app.debug('[ntfy] AVISO: No se encontró token en la configuración de este servidor.');
   }
-
-  app.debug(`[ntfy] Body:`, JSON.stringify(body, null, 2));
+  
+  app.debug(`[ntfy] Body a enviar:`, JSON.stringify(body, null, 2));
   
   try {
     const res = await fetch(fullUrl, {
@@ -110,16 +112,16 @@ async function sendNotification(app, config, opts) {
       headers: headers,
       body: JSON.stringify(body)
     });
-
+    
     if (!res.ok) {
       const text = await res.text();
+      app.error(`[ntfy] Error HTTP ${res.status}: ${res.statusText} - Respuesta del servidor: ${text}`);
       throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
     }
     
-    app.debug('[ntfy] Notificación enviada correctamente');
-    
+    app.debug('[ntfy] Notificación enviada correctamente (2xx)');
   } catch (error) {
-    app.error(`[ntfy] Error en fetch: ${error.message}`);
+    app.error(`[ntfy] Excepción en fetch: ${error.message}`);
     throw error;
   }
 }

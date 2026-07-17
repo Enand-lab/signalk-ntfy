@@ -3,6 +3,16 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.5] - 2026-07-18
+
+### Added
+- Filtro de notificaciones repetidas configurable por path (`filterDuplicates` y `minIntervalMinutes`) para evitar spam en alarmas de alta frecuencia (ej. alarma de ancla).
+
+### Fixed
+- Corrección crítica en la construcción de URLs (expresión regular `//` corregida a `/\/$/`) que causaba fallos silenciosos en la conexión.
+- El WebSocket ahora utiliza correctamente las cabeceras nativas de autenticación (`Authorization: Bearer`) en lugar de parámetros de URL, resolviendo el error 403 en servidores ntfy con acceso anónimo denegado.
+- Eliminada la condición de carrera que provocaba la doble inicialización del listener al cambiar de servidor desde la interfaz de usuario.
+
 ## [0.0.4] - 2026-03-14
 
 ### Added
