@@ -3,6 +3,28 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.7] - 2026-07-19
+
+### Fixed
+- **CORRECCIÓN CRÍTICA**: Arreglado problema con codificación UTF-8 en títulos y acciones
+- Cambiado a JSON publishing (recomendado por documentación oficial de ntfy)
+- Los emojis y caracteres especiales ahora se muestran correctamente
+- Las acciones con botones funcionan correctamente
+- Soporte completo para UTF-8 en mensajes, títulos y labels de acciones
+
+### Technical Details
+- Las notificaciones ahora se envían como JSON a la raíz del servidor (`POST /`)
+- El topic va dentro del payload JSON en lugar de la URL
+- Esto permite UTF-8 nativo sin problemas de codificación en headers HTTP
+- Compatible con servidores ntfy auto-alojados y ntfy.sh
+
+### Regression en la version 0.0.6
+- Problema con codificación de caracteres UTF-8 en headers HTTP
+- Los emojis y acentos no se mostraban correctamente
+- Las acciones con botones fallaban
+
+**Nota**: La versión 0.0.7 es un parche correctivo que soluciona la regresión introducida en 0.0.6.
+
 ## [0.0.6] - 2026-07-18
 
 ### Added
