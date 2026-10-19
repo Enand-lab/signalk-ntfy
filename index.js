@@ -9,6 +9,57 @@ let currentConfig = {};
 let listenerInstance = null;
 let unsubscribes = [];
 
+// --- Filtro anti-duplicados (filterDuplicates / minIntervalMinutes) ---
+// Registro en memoria del ultimo estado enviado por path. Las entradas de mas de
+// 24 h se purgan solas para que el mapa no crezca sin limite.
+const FILTER_RETENTION_MS = 24 * 60 * 60 * 1000;
+// Orden de severidad de los estados de notificacion de Signal K.
+const STATE_SEVERITY = { normal: 0, alert: 1, warn: 2, alarm: 3, emergency: 4 };
+let lastSentByPath = new Map();
+
+// Intervalo minimo efectivo en milisegundos (el esquema exige >= 1 minuto; 5 por defecto).
+function minIntervalMs(config) {
+  const minutes = Number(config.minIntervalMinutes);
+  return (Number.isFinite(minutes) && minutes > 0 ? minutes : 5) * 60 * 1000;
+}
+
+// Descarta las entradas caducadas (mas de 24 h sin enviar por ese path).
+function purgeLastSent(now) {
+  for (const [path, entry] of lastSentByPath) {
+    if (now - entry.timestamp > FILTER_RETENTION_MS) lastSentByPath.delete(path);
+  }
+}
+
+// Decide si un delta merece notificacion.
+// - Filtro apagado (valor por defecto): siempre, comportamiento historico intacto.
+// - Filtro encendido: se envia si el estado cambia respecto al ultimo enviado, si
+//   ha vencido el intervalo minimo, o si la severidad escala. Una escalada NUNCA
+//   se silencia aunque el path este en cooldown (seguridad a bordo).
+function shouldSendForPath(path, state, config, now) {
+  if (!config.filterDuplicates) return true;
+  purgeLastSent(now);
+  const last = lastSentByPath.get(path);
+  if (!last) return true;
+  const severity = STATE_SEVERITY[state] !== undefined ? STATE_SEVERITY[state] : 0;
+  const lastSeverity = STATE_SEVERITY[last.state] !== undefined ? STATE_SEVERITY[last.state] : 0;
+  if (severity > lastSeverity) return true;   // escalada de severidad: siempre pasa
+  if (state !== last.state) return true;      // cambio de estado (incluida desescalada)
+  return now - last.timestamp >= minIntervalMs(config);
+}
+
+// Marca el envio de un path y devuelve la entrada anterior, para poder deshacerla
+// si el envio falla y no queremos silenciar el reintento.
+function markSent(path, state, now) {
+  const previous = lastSentByPath.get(path);
+  lastSentByPath.set(path, { state, timestamp: now });
+  return previous;
+}
+
+function rollbackSent(path, previous) {
+  if (previous) lastSentByPath.set(path, previous);
+  else lastSentByPath.delete(path);
+}
+
 // Fallback title for producers that send no `title` in the notification value
 // (Signal K notification values carry state/method/message only, so this is
 // the common case). Builds "STATE: Path Words" from the notification path,
@@ -74,6 +125,9 @@ module.exports = function(app) {
     start: (settings, restartPlugin) => {
       const oldServerId = currentConfig.activeServerId;
       currentConfig = settings || {};
+      
+      // Al arrancar o reconfigurar, el registro del filtro empieza limpio.
+      lastSentByPath = new Map();
       
       if (!currentConfig.servers || !Array.isArray(currentConfig.servers)) {
         currentConfig.servers = [{
@@ -169,6 +223,18 @@ module.exports = function(app) {
               if (!v?.path || !v.value || !v.value.state) return;
               if (!currentConfig.levels.includes(v.value.state)) return;
               
+              // Filtro anti-duplicados: se evalua por path y solo si esta activado.
+              const now = Date.now();
+              if (!shouldSendForPath(v.path, v.value.state, currentConfig, now)) {
+                currentApp.debug(`[ntfy] Duplicado silenciado: ${v.path} (${v.value.state})`);
+                return;
+              }
+              // Se marca antes del POST para que una rafaga de deltas no lance varios
+              // envios en vuelo; si el envio falla se deshace la marca (ver catch).
+              const previousSent = currentConfig.filterDuplicates
+                ? markSent(v.path, v.value.state, now)
+                : undefined;
+              
               let title = v.value.title || deriveTitle(v.path, v.value.state, currentConfig);
               const message = v.value.message || 'Sin mensaje';
               if (Array.isArray(v.value.method) && v.value.method.length === 0) {
@@ -182,6 +248,9 @@ module.exports = function(app) {
                 state: v.value.state,
                 path: v.path 
               }).catch(err => {
+                // Si el envio falla, el path vuelve a su marca anterior: no silenciamos
+                // el siguiente intento por un fallo de red.
+                if (currentConfig.filterDuplicates) rollbackSent(v.path, previousSent);
                 currentApp.error(`[ntfy] Error al enviar notificación: ${err.message}`);
               });
             });
