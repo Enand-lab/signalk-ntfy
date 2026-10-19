@@ -3,6 +3,19 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.8] - 2026-10-19
+
+### Added
+- Titulo derivado del path y del estado cuando el productor no envia `title` (p. ej. `ALARM: Navigation Anchor Drag`), y campo opcional `titlePrefix` para anteponer una etiqueta propia, como el nombre del barco. Contribucion de Peter Petrik (PR #2).
+
+### Fixed
+- **El filtro de notificaciones duplicadas anunciado en 0.0.5 no estaba conectado a ningun codigo**: `filterDuplicates` y `minIntervalMinutes` existian en el esquema y en la documentacion, pero no se aplicaban. Ahora funcionan por path: se envia cuando el estado cambia o cuando vence el intervalo minimo, y se silencia el resto.
+- Una **escalada de severidad** (`normal` < `alert` < `warn` < `alarm` < `emergency`) **nunca se silencia**, aunque el path este en cooldown.
+- El registro del filtro se purga solo (entradas de mas de 24 h) y un envio fallido no consume cooldown: el siguiente delta de ese path se vuelve a intentar.
+
+### Notas
+- Con `filterDuplicates` en `false` (valor por defecto) el comportamiento es exactamente el anterior: una notificacion por cada delta que pase el filtro de niveles.
+
 ## [0.0.7] - 2026-07-19
 
 ### Fixed

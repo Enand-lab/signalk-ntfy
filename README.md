@@ -66,11 +66,23 @@ You only need:
 - Enable the plugin and select alert levels  
 - The ntfy mobile app
 
-#### Anti-Spam Filtering (Configurable) V 0.0.5 +
-To prevent notification fatigue from high-frequency SignalK paths (e.g., anchor alarms updating at 1Hz), the plugin includes a built-in duplicate filter:
-- **Filter duplicate notifications**: Enable this option in the plugin settings to block repeated alerts from the same SignalK path.
-- **Minimum interval (minutes)**: Set the cooldown period between allowed notifications for the same path (default: 5 minutes). 
-*Note: This filtering happens locally on the SignalK server, saving bandwidth and preventing mobile device spam.*
+#### Anti-Spam Filtering (v0.0.8+)
+
+High-frequency SignalK paths - an anchor alarm republishing the same state at 1 Hz, for example - can flood your phone. The plugin can throttle them, keeping at most one notification per path and cooldown:
+
+- **Filter duplicate notifications**: off by default. When off, every delta that passes the level filter is sent, exactly as in previous versions.
+- **Minimum interval (minutes)**: cooldown for each SignalK path (default: 5 minutes).
+
+With the filter enabled, a notification for a given path is sent when:
+
+1. the **state changes** from the last state sent for that path (for example `alert` to `alarm`, or back to `normal`), or
+2. at least **minIntervalMinutes** have elapsed since the last notification sent for that path.
+
+Everything else is dropped locally, before the HTTP request, so nothing reaches ntfy or your phone.
+
+**Safety rule: a severity escalation is never silenced.** Severity order is `normal` < `alert` < `warn` < `alarm` < `emergency`. If the new state is more severe than the last one sent, the notification goes out immediately, even if that path is still inside its cooldown.
+
+The registry lives in memory, keyed by SignalK path; entries older than 24 hours are discarded, and a failed delivery does not consume the cooldown (the next delta for that path is tried again).
 
 Example use case:  
 “Engine overheating” → Instant push notification on your phone.
@@ -156,6 +168,39 @@ If you need full ACLs, authentication, or TLS isolation, self-host ntfy on your 
 
 **Never use localhost** in your server URL if you interact from mobile devices.  
 Your phone interprets localhost as itself — not your SignalK server.
+
+---
+
+## Self-hosted ntfy (optional)
+
+Running ntfy on board keeps alerts working with no internet, and keeps your topics private to your own network. Minimal `docker-compose.yml`:
+
+```yaml
+services:
+  ntfy:
+    image: binwiederhier/ntfy
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./ntfy-cache:/var/cache/ntfy
+      - ./ntfy-config:/etc/ntfy
+    environment:
+      - TZ=UTC
+```
+
+Start it with `docker compose up -d` and point the plugin at `http://<server-ip>:8081` - never `localhost`, as explained above. Drop a `server.yml` into `./ntfy-config` if you want authentication, ACLs or a base URL; without it the server runs in open mode, so use long random topic names.
+
+### Signal K running in a container
+
+If Signal K runs inside a container, `localhost` / `127.0.0.1` there means the container itself, not the host, so the ntfy container is unreachable at that address. Use the host gateway name instead:
+
+- **Podman**: `host.containers.internal`
+- **Docker**: `host.docker.internal` (on Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the Signal K service)
+
+The server URL then looks like `http://host.containers.internal:8081`. The same rule applies to your phone: use the host LAN IP, never `localhost`.
 
 ---
 
