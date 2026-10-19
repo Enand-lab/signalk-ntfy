@@ -58,6 +58,12 @@
         "title": "Main topic for SignalK messages",
         "description": "⚠️ Required for basic mode. Choose a random, hard-to-guess name (e.g., xK9mQ2p_aB3). Avoid boat names or common words. Public on ntfy.sh. This topic is global on ntfy.sh. Choose a unique, random name to avoid receiving messages or commands from other users."
     },
+    "titlePrefix": {
+      "type": "string",
+      "title": "Notification title prefix",
+      "description": "Optional label prepended to generated notification titles, e.g. your vessel name. Leave empty for none. Only applies when the Signal K notification does not carry its own title.",
+      "default": ""
+    },
     "filterDuplicates": {
       "type": "boolean",
       "title": "Filter duplicate notifications",

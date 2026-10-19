@@ -9,6 +9,25 @@ let currentConfig = {};
 let listenerInstance = null;
 let unsubscribes = [];
 
+// Fallback title for producers that send no `title` in the notification value
+// (Signal K notification values carry state/method/message only, so this is
+// the common case). Builds "STATE: Path Words" from the notification path,
+// optionally prefixed with a user-defined label (e.g. the vessel name).
+function deriveTitle(path, state, config) {
+  const words = String(path || '')
+    .replace(/^notifications\./, '')
+    .split('.')
+    .filter(Boolean)
+    .map(seg => seg.charAt(0).toUpperCase() + seg.slice(1))
+    .join(' ');
+  const stateLabel = state ? String(state).toUpperCase() : '';
+  let title = stateLabel && words ? `${stateLabel}: ${words}`
+    : (stateLabel || words || 'SignalK Alert');
+  const prefix = typeof config.titlePrefix === 'string' ? config.titlePrefix.trim() : '';
+  if (prefix) title = `${prefix} · ${title}`;
+  return title;
+}
+
 // Función para determinar servidor activo
 function getActiveServer(config) {
   const defaultServer = config.servers.find(s => s.isDefault);
@@ -150,7 +169,7 @@ module.exports = function(app) {
               if (!v?.path || !v.value || !v.value.state) return;
               if (!currentConfig.levels.includes(v.value.state)) return;
               
-              let title = v.value.title || 'SignalK Alert';
+              let title = v.value.title || deriveTitle(v.path, v.value.state, currentConfig);
               const message = v.value.message || 'Sin mensaje';
               if (Array.isArray(v.value.method) && v.value.method.length === 0) {
                 title += ' (Silenciada)';
