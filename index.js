@@ -1,5 +1,6 @@
 // Punto de entrada del plugin signalk-ntfy
 const { sendNotification } = require('./sender');
+const { createRetryQueue } = require('./retry');
 const { startListener, stopListener } = require('./listener');
 const { registerApi } = require('./api');
 
@@ -8,6 +9,7 @@ let currentApp = null;
 let currentConfig = {};
 let listenerInstance = null;
 let unsubscribes = [];
+let retryQueue = null;
 
 // --- Filtro anti-duplicados (filterDuplicates / minIntervalMinutes) ---
 // Registro en memoria del ultimo estado enviado por path. Las entradas de mas de
@@ -16,6 +18,10 @@ const FILTER_RETENTION_MS = 24 * 60 * 60 * 1000;
 // Orden de severidad de los estados de notificacion de Signal K.
 const STATE_SEVERITY = { normal: 0, alert: 1, warn: 2, alarm: 3, emergency: 4 };
 let lastSentByPath = new Map();
+// Marca a la que hay que volver si la notificacion de un path no llega a enviarse.
+// Se guarda la primera de la racha: durante los reintentos el path sigue marcado
+// (asi una rafaga no lanza varios envios) y al fallar de forma definitiva se deshace.
+let pendingRollback = new Map();
 
 // Intervalo minimo efectivo en milisegundos (el esquema exige >= 1 minuto; 5 por defecto).
 function minIntervalMs(config) {
@@ -126,8 +132,15 @@ module.exports = function(app) {
       const oldServerId = currentConfig.activeServerId;
       currentConfig = settings || {};
       
-      // Al arrancar o reconfigurar, el registro del filtro empieza limpio.
+      // Al arrancar o reconfigurar, el registro del filtro empieza limpio y los
+      // reintentos pendientes del arranque anterior se tiran.
       lastSentByPath = new Map();
+      pendingRollback.clear();
+      if (retryQueue) retryQueue.cancelAll();
+      retryQueue = createRetryQueue({
+        app: currentApp,
+        send: (job) => sendNotification(currentApp, currentConfig, job.payload)
+      });
       
       if (!currentConfig.servers || !Array.isArray(currentConfig.servers)) {
         currentConfig.servers = [{
@@ -225,33 +238,52 @@ module.exports = function(app) {
               
               // Filtro anti-duplicados: se evalua por path y solo si esta activado.
               const now = Date.now();
-              if (!shouldSendForPath(v.path, v.value.state, currentConfig, now)) {
-                currentApp.debug(`[ntfy] Duplicado silenciado: ${v.path} (${v.value.state})`);
+              const path = v.path;
+              if (!shouldSendForPath(path, v.value.state, currentConfig, now)) {
+                currentApp.debug(`[ntfy] Duplicado silenciado: ${path} (${v.value.state})`);
                 return;
               }
               // Se marca antes del POST para que una rafaga de deltas no lance varios
-              // envios en vuelo; si el envio falla se deshace la marca (ver catch).
+              // envios en vuelo. La marca solo vale si el envio tiene exito: mientras
+              // la cola reintenta el path sigue marcado, y si se agotan los intentos
+              // se deshace (ver onFailure).
               const previousSent = currentConfig.filterDuplicates
-                ? markSent(v.path, v.value.state, now)
+                ? markSent(path, v.value.state, now)
                 : undefined;
+              if (currentConfig.filterDuplicates && !pendingRollback.has(path)) {
+                pendingRollback.set(path, previousSent);
+              }
               
-              let title = v.value.title || deriveTitle(v.path, v.value.state, currentConfig);
+              let title = v.value.title || deriveTitle(path, v.value.state, currentConfig);
               const message = v.value.message || 'No message';
               if (Array.isArray(v.value.method) && v.value.method.length === 0) {
                 title += ' (Silenced)';
               }
               
-              // Enviar notificación con configuración actual (incluyendo path para el filtro)
-              sendNotification(currentApp, currentConfig, { 
-                message, 
-                title, 
-                state: v.value.state,
-                path: v.path 
-              }).catch(err => {
-                // Si el envio falla, el path vuelve a su marca anterior: no silenciamos
-                // el siguiente intento por un fallo de red.
-                if (currentConfig.filterDuplicates) rollbackSent(v.path, previousSent);
-                currentApp.error(`[ntfy] Error al enviar notificación: ${err.message}`);
+              // Envio a traves de la cola de reintentos (5, 15 y 45 s): un fallo de red
+              // ya no pierde el aviso, y una notificacion nueva del mismo path sustituye
+              // al reintento pendiente. El POST lo hace sender.js, con timeout propio.
+              const state = v.value.state;
+              if (!retryQueue) return;   // plugin detenido: no hay cola de envio
+              retryQueue.enqueue({
+                path,
+                payload: { message, title, state, path },
+                onSuccess: () => {
+                  // Envio confirmado: la marca del filtro ya es buena.
+                  if (currentConfig.filterDuplicates) {
+                    lastSentByPath.set(path, { state, timestamp: Date.now() });
+                    pendingRollback.delete(path);
+                  }
+                },
+                onFailure: (err, info) => {
+                  // Envio fallido de forma definitiva: el path vuelve a su marca
+                  // anterior para no silenciar la siguiente notificacion.
+                  if (currentConfig.filterDuplicates && pendingRollback.has(path)) {
+                    rollbackSent(path, pendingRollback.get(path));
+                    pendingRollback.delete(path);
+                  }
+                  currentApp.error(`[ntfy] Error al enviar notificación: ${err.message} (${info.attempts} intento(s))`);
+                }
               });
             });
           });
@@ -301,6 +333,11 @@ module.exports = function(app) {
         stopListener(listenerInstance);
         listenerInstance = null;
       }
+      if (retryQueue) {
+        retryQueue.cancelAll();
+        retryQueue = null;
+      }
+      pendingRollback.clear();
       if (currentApp.signalkNtfyPlugin) {
         currentApp.signalkNtfyPlugin.listenerInstance = null;
       }
