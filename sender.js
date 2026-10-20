@@ -1,6 +1,10 @@
 // sender.js
 const fetch = require('node-fetch');
 
+// Tiempo maximo de una peticion. Un servidor que acepta la conexion y no contesta
+// dejaria el envio pendiente para siempre; con esto cae y entra en el reintento.
+const REQUEST_TIMEOUT_MS = 10000;
+
 const DEFAULT_STATE_PRIORITY_MAP = {
   'normal': 2,
   'alert': 3,
@@ -111,23 +115,51 @@ async function sendNotification(app, config, opts) {
   
   app.debug(`[ntfy] Body JSON: ${JSON.stringify(body, null, 2)}`);
   
+  // El error que sale de aqui lleva dos datos que usa la cola de reintentos de
+  // retry.js: `status` (HTTP, si lo hubo) y `retryable` (si tiene sentido repetir).
+  // Se reintenta en error de red, timeout, HTTP 5xx y HTTP 429; un 4xx (401, 403)
+  // es error de configuracion y no se repite.
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let failure = null;
+  
   try {
     const res = await fetch(fullUrl, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
     
     if (!res.ok) {
       const text = await res.text();
       app.error(`[ntfy] Error HTTP ${res.status}: ${text}`);
-      throw new Error(`HTTP ${res.status}`);
+      failure = new Error(`HTTP ${res.status}`);
+      failure.status = res.status;
+      failure.retryable = res.status >= 500 || res.status === 429;
+    } else {
+      app.debug('[ntfy] Notificación enviada correctamente');
     }
-    app.debug('[ntfy] Notificación enviada correctamente');
   } catch (error) {
-    app.error(`[ntfy] Error: ${error.message}`);
-    throw error;
+    if (error && error.name === 'AbortError') {
+      failure = new Error(`timeout tras ${REQUEST_TIMEOUT_MS} ms`);
+      failure.code = 'ETIMEDOUT';
+    } else {
+      failure = new Error(error && error.message ? error.message : String(error));
+      if (error && error.code) failure.code = error.code;
+      if (error && error.type) failure.type = error.type;
+    }
+    // Cualquier excepcion en el fetch es de red o de tiempo: se reintenta.
+    // Una URL invalida es configuracion, no red, y no se repite.
+    failure.retryable = failure.code !== 'ERR_INVALID_URL';
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+  
+  if (failure) {
+    app.error(`[ntfy] Error: ${failure.message}`);
+    throw failure;
   }
 }
 
-module.exports = { sendNotification };
+module.exports = { sendNotification, REQUEST_TIMEOUT_MS };
