@@ -69,6 +69,37 @@ Solo necesitas:
 **Ejemplo de uso:**  
 “Sobrecalentamiento del motor” → Notificación inmediata en tu teléfono.
 
+#### URL de click por path (`clickUrls`)
+
+Al tocar una notificación, el teléfono abre la app de ntfy y nada más. `clickUrls` asocia paths de notificación con una URL que se abre en su lugar: la web de la alarma de ancla, un dashboard, la página de una cámara. Es un array de parejas `pathPrefix` / `url`, vacío por defecto: una instalación que no lo usa se comporta exactamente igual que antes.
+
+- El prefijo se puede escribir con o sin `notifications.` delante: `navigation.anchor` se convierte en `notifications.navigation.anchor`.
+- La coincidencia es por **segmentos completos del path**: el prefijo encaja si el path es igual a él o sigue con un punto. Así, `notifications.navigation.anchor` vale para `notifications.navigation.anchor` y `notifications.navigation.anchor.drag`, pero no para `notifications.navigation.anchorage`.
+- Gana el **prefijo más largo**. Un prefijo `*` (o vacío) es el comodín y solo se usa cuando ningún prefijo concreto encaja.
+- Sin coincidencia no se manda click: la notificación abre la app de ntfy como antes.
+- La URL tiene que empezar por `http://` o `https://` y ser alcanzable desde el teléfono (una VPN o un nombre público: el plugin no puede deducirlo). Se recorta la barra final. Una entrada sin URL o con una URL que no sea http(s) se avisa en el log al arrancar y se ignora; el plugin sigue funcionando.
+
+Ejemplo:
+
+| Prefijo del path | URL |
+|---|---|
+| `notifications.navigation.anchor` | `https://signalk.example/hoekens-anchor-alarm` |
+| `*` | `https://signalk.example/dashboard` |
+
+Las notificaciones enviadas por `POST /plugins/signalk-ntfy/send` aceptan un campo `click` explícito en el cuerpo, para mensajes que no vienen de un path `notifications.*`.
+
+#### Aviso al volver a normal (`notifyOnClear`)
+
+Apagado por defecto. Con él encendido, el plugin recuerda cada path del que ha enviado un aviso y, cuando ese mismo path llega otra vez como `normal` o como `null` (el productor borra la notificación), manda un único aviso **`CLEARED: <palabras del path>`** y olvida el path. Las alertas que nunca se reenviaron no producen nada: por eso es más silencioso que añadir `normal` a los niveles de alerta.
+
+- El registro vive en memoria, por path, y caduca a las 24 h igual que el filtro de duplicados. Se anota al encolar el aviso, no al confirmar el envío.
+- El aviso de vuelta a normal borra también la marca del filtro de duplicados de ese path, así que una alarma nueva entra de inmediato.
+- El mensaje es el que trae la notificación; si no trae ninguno, `Back to normal`.
+- La prioridad sale del `priorityMap` del servidor para `normal` (2 por defecto), para no romper los modos de concentración.
+- Un valor `normal` no sigue nunca el camino normal de envío, aunque `normal` esté en los niveles de alerta: con la opción apagada no se manda nada y con ella encendida solo sale el aviso de un path que se había avisado antes.
+- `titlePrefix` se aplica también al título del aviso de vuelta a normal.
+- Esta versión manda un **mensaje nuevo**: no usa `sequence_id` ni `message_clear` de ntfy para actualizar o descartar la notificación original.
+
 ### 2. Modo avanzado – Comunicación bidireccional
 
 Esta es la funcionalidad principal del plugin.  

@@ -109,6 +109,37 @@ With `filterDuplicates` enabled, the per-path mark only counts once the delivery
 
 Retries apply to the automatic notifications from `notifications.*`. The `POST /plugins/signalk-ntfy/send` API endpoint stays a **single attempt**: it returns the error to the caller instead of retrying in the background, so the client keeps control of its own retries.
 
+#### Click URL per notification path (`clickUrls`)
+
+Tapping a notification normally opens the ntfy app and nothing else. `clickUrls` maps notification paths to a URL that opens instead — the anchor alarm webapp, a dashboard, a camera page. It is an array of `pathPrefix` / `url` pairs, empty by default, so an installation that does not use it behaves exactly as before.
+
+- The prefix may be written with or without the leading `notifications.`: `navigation.anchor` becomes `notifications.navigation.anchor`.
+- Matching is by **whole path segments**: a prefix matches when the path is equal to it or continues with a dot, so `notifications.navigation.anchor` matches `notifications.navigation.anchor` and `notifications.navigation.anchor.drag`, but not `notifications.navigation.anchorage`.
+- The **longest matching prefix wins**. A prefix of `*` (or an empty prefix) is a catch-all, used only when no specific prefix matches.
+- No match, no click: the notification opens the ntfy app as before.
+- The URL must start with `http://` or `https://`, and has to be reachable from the phone (a VPN or a public hostname — the plugin cannot derive it). A trailing slash is trimmed. An entry with a missing or non-http(s) URL is reported in the log at startup and ignored; the plugin keeps running.
+
+Example:
+
+| Path prefix | URL |
+|---|---|
+| `notifications.navigation.anchor` | `https://signalk.example/hoekens-anchor-alarm` |
+| `*` | `https://signalk.example/dashboard` |
+
+Notifications sent through `POST /plugins/signalk-ntfy/send` accept an explicit `click` field in the body, for messages that do not come from a `notifications.*` path.
+
+#### Notify when an alert clears (`notifyOnClear`)
+
+Off by default. With it on, the plugin remembers every path it has forwarded and, when that same path arrives again as `normal` or as `null` (the producer removed the notification), sends one **`CLEARED: <path words>`** notification and forgets the path. Alerts that were never forwarded produce nothing, which is why this is quieter than adding `normal` to the alert levels.
+
+- The registry lives in memory, keyed by path, and entries expire after 24 hours like the duplicate filter. It is filled when the notification is queued, not when the delivery is confirmed.
+- A clear also resets the duplicate filter entry for that path, so a new alarm on the same path goes out immediately.
+- The message is the one carried by the notification; `Back to normal` when it has none.
+- Priority comes from the server `priorityMap` for `normal` (2 by default), so the all-clear does not break through focus modes.
+- A value that is `normal` never follows the normal delivery path, even if `normal` is listed in the alert levels: with this option off it sends nothing, and with it on it only sends the clear of a path that was forwarded.
+- `titlePrefix` applies to the clear title too.
+- This version sends a **new message**: it does not use ntfy's `sequence_id` / `message_clear` to update or dismiss the original notification.
+
 ### 2. Advanced Mode – Bidirectional communication
 
 This is the plugin’s core functionality.  

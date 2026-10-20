@@ -3,6 +3,16 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [Unreleased]
+
+### Added
+- **URL de click por path (`clickUrls`, issue #7)**: nueva lista de parejas prefijo/URL en la configuracion. La notificacion reenviada lleva el campo `click` de ntfy, asi que al tocarla el telefono abre la pagina que corresponda (alarma de ancla, dashboard, camara) en vez de la app de ntfy. Coincidencia por segmentos completos del path, gana el prefijo mas largo, `*` o prefijo vacio como comodin, sin coincidencia no se manda click. El prefijo se normaliza con `notifications.` delante si falta, se recorta la barra final de la URL y solo se aceptan `http`/`https`: una entrada invalida se avisa en el log al arrancar y se ignora sin tumbar el plugin. `POST /send` acepta `click` explicito.
+- **Aviso de vuelta a normal (`notifyOnClear`, issue #6)**: apagado por defecto. Con el encendido, el plugin recuerda en memoria (por path, caducidad de 24 h) los avisos que ha encolado y, cuando ese path llega como `normal` o `null`, manda un unico `CLEARED: <camino>` con el mensaje del valor (o `Back to normal`), prioridad la del mapa para `normal` (2 por defecto) y borra la marca del filtro de duplicados para que una alarma nueva entre de inmediato. El registro se anota al encolar, no al confirmar; el aviso de vuelta a normal no se anota en el filtro. Un valor `normal` no sigue nunca el camino normal, aunque `normal` este en `levels`.
+
+### Notas
+- Sin cambios en `filterDuplicates` ni en la cola de reintentos: con `notifyOnClear` apagado y `clickUrls` vacio el comportamiento es el de la 0.0.9.
+- Esta version manda un mensaje nuevo al volver a normal: no se usa `sequence_id` ni `message_clear` de ntfy para actualizar el aviso original.
+
 ## [0.0.9] - 2026-10-20
 
 ### Fixed
