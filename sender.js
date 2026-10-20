@@ -14,7 +14,7 @@ const DEFAULT_STATE_PRIORITY_MAP = {
 };
 
 async function sendNotification(app, config, opts) {
-  const { message, title, actions, topic, server, state, value, priority: overridePriority, tags } = opts;
+  const { message, title, actions, topic, server, state, value, priority: overridePriority, tags, click } = opts;
   
   const targetServer = server || config.servers.find(s => s.id === config.activeServerId);
   if (!targetServer) {
@@ -64,6 +64,13 @@ async function sendNotification(app, config, opts) {
     title: safeTitle,
     priority: finalPriority
   };
+  
+  // URL que abre el telefono al tocar la notificacion (campo `click` del JSON de
+  // ntfy). Quien llama la resuelve con clickUrls; aqui solo se comprueba que sea
+  // una cadena con algo dentro.
+  if (typeof click === 'string' && click.trim() !== '') {
+    body.click = click.trim();
+  }
   
   // Añadir tags si existen
   if (tags) {
@@ -162,4 +169,4 @@ async function sendNotification(app, config, opts) {
   }
 }
 
-module.exports = { sendNotification, REQUEST_TIMEOUT_MS };
+module.exports = { sendNotification, REQUEST_TIMEOUT_MS, DEFAULT_STATE_PRIORITY_MAP };

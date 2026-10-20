@@ -64,6 +64,30 @@
       "description": "Optional label prepended to generated notification titles, e.g. your vessel name. Leave empty for none. Only applies when the Signal K notification does not carry its own title.",
       "default": ""
     },
+    "clickUrls": {
+      "type": "array",
+      "title": "Click URLs per notification path",
+      "description": "Optional. URL opened when the notification is tapped, instead of the ntfy app. Matching is by complete path segments and the longest matching prefix wins. Leave the prefix empty (or use *) as a catch-all. Only http(s) URLs reachable from the phone are useful. Entries with a URL that does not start with http:// or https:// are ignored and reported in the log at startup.",
+      "items": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "pathPrefix": {
+            "type": "string",
+            "title": "Path prefix",
+            "description": "For example notifications.navigation.anchor; the leading notifications. may be omitted. Empty or * matches every notification.",
+            "default": ""
+          },
+          "url": {
+            "type": "string",
+            "title": "URL to open*",
+            "description": "Must start with http:// or https://. Use a hostname or VPN reachable from the phone.",
+            "default": ""
+          }
+        }
+      },
+      "default": []
+    },
     "filterDuplicates": {
       "type": "boolean",
       "title": "Filter duplicate notifications",
@@ -76,6 +100,12 @@
       "description": "Minimum time that must pass between notifications for the same path. Only applies if the filter is enabled.",
       "default": 5,
       "minimum": 1
+    },
+    "notifyOnClear": {
+      "type": "boolean",
+      "title": "Notify when an alert returns to normal",
+      "description": "Sends one CLEARED notification when a path that was forwarded earlier comes back as normal or null. Paths that were never forwarded produce nothing. A notification that is normal never follows the normal path, even if normal is listed in the alert levels.",
+      "default": false
     },
     "levels": {
       "type": "array",

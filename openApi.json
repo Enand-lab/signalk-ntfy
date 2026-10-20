@@ -71,6 +71,11 @@
                         }
                       }
                     }
+                  },
+                  "click": {
+                    "type": "string",
+                    "description": "URL que se abre al tocar la notificacion (campo click de ntfy). Debe empezar por http:// o https://. Opcional; en las notificaciones automaticas la resuelve clickUrls.",
+                    "example": "https://signalk.example/hoekens-anchor-alarm"
                   }
                 }
               },

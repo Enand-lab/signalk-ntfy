@@ -34,7 +34,7 @@ function registerApi(app, config, sendNotification, router) {
       app.debug('[ntfy API] Petición recibida:', JSON.stringify(req.body));
       
       // EXTRAER priority y tags del body
-      const { message, title, actions, topic, state, priority, tags } = req.body;
+      const { message, title, actions, topic, state, priority, tags, click } = req.body;
       
       if (!message) {
         return res.status(400).json({ error: 'El campo "message" es obligatorio.' });
@@ -57,6 +57,7 @@ function registerApi(app, config, sendNotification, router) {
         state,
         priority,    // Pasar prioridad desde Node-RED
         tags,        // Pasar tags desde Node-RED
+        click,       // URL de click explicita (issue #7)
         server: activeServer
       });
       

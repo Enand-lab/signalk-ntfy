@@ -1,5 +1,5 @@
 // Punto de entrada del plugin signalk-ntfy
-const { sendNotification } = require('./sender');
+const { sendNotification, DEFAULT_STATE_PRIORITY_MAP } = require('./sender');
 const { createRetryQueue } = require('./retry');
 const { startListener, stopListener } = require('./listener');
 const { registerApi } = require('./api');
@@ -23,6 +23,13 @@ let lastSentByPath = new Map();
 // (asi una rafaga no lanza varios envios) y al fallar de forma definitiva se deshace.
 let pendingRollback = new Map();
 
+// --- Aviso de vuelta a la normalidad (notifyOnClear, issue #6) ---
+// Paths de los que se ha encolado un aviso desde que arranco el plugin: es lo que
+// permite avisar del "ya esta normal" solo de lo que se aviso antes, en vez de
+// reenviar el normal de todo el barco. En memoria y con la misma caducidad que el
+// filtro (24 h); al reiniciar el plugin el registro empieza vacio.
+let notifiedByPath = new Map();
+
 // Intervalo minimo efectivo en milisegundos (el esquema exige >= 1 minuto; 5 por defecto).
 function minIntervalMs(config) {
   const minutes = Number(config.minIntervalMinutes);
@@ -34,6 +41,28 @@ function purgeLastSent(now) {
   for (const [path, entry] of lastSentByPath) {
     if (now - entry.timestamp > FILTER_RETENTION_MS) lastSentByPath.delete(path);
   }
+}
+
+// Lo mismo para el registro de avisos (notifyOnClear).
+function purgeNotified(now) {
+  for (const [path, entry] of notifiedByPath) {
+    if (now - entry.timestamp > FILTER_RETENTION_MS) notifiedByPath.delete(path);
+  }
+}
+
+// Anota que se ha avisado de un path. Se llama al encolar, no al confirmar el
+// envio: el armador prefiere que un "ya esta normal" de mas sea posible a que un
+// aviso perdido por red no tenga su vuelta a la normalidad.
+function markNotified(path, state, now) {
+  purgeNotified(now);
+  notifiedByPath.set(path, { state, timestamp: now });
+}
+
+// Consume la entrada del registro: devuelve true solo si ese path se aviso y la
+// entrada sigue vigente. Borrarla evita repetir el CLEARED en cada delta normal.
+function forgetNotified(path, now) {
+  purgeNotified(now);
+  return notifiedByPath.delete(path);
 }
 
 // Decide si un delta merece notificacion.
@@ -66,23 +95,111 @@ function rollbackSent(path, previous) {
   else lastSentByPath.delete(path);
 }
 
-// Fallback title for producers that send no `title` in the notification value
-// (Signal K notification values carry state/method/message only, so this is
-// the common case). Builds "STATE: Path Words" from the notification path,
-// optionally prefixed with a user-defined label (e.g. the vessel name).
-function deriveTitle(path, state, config) {
-  const words = String(path || '')
+// Parte del path en palabras ("notifications.navigation.anchor" -> "Navigation Anchor").
+// La usan tanto el titulo de una alarma como el del aviso de vuelta a la normalidad.
+function pathWords(path) {
+  return String(path || '')
     .replace(/^notifications\./, '')
     .split('.')
     .filter(Boolean)
     .map(seg => seg.charAt(0).toUpperCase() + seg.slice(1))
     .join(' ');
-  const stateLabel = state ? String(state).toUpperCase() : '';
-  let title = stateLabel && words ? `${stateLabel}: ${words}`
-    : (stateLabel || words || 'SignalK Alert');
+}
+
+// Fallback title for producers that send no `title` in the notification value
+// (Signal K notification values carry state/method/message only, so this is
+// the common case). Builds "STATE: Path Words" from the notification path,
+// optionally prefixed with a user-defined label (e.g. the vessel name).
+function composeTitle(stateLabel, path, config) {
+  const words = pathWords(path);
+  const label = stateLabel ? String(stateLabel).toUpperCase() : '';
+  let title = label && words ? `${label}: ${words}`
+    : (label || words || 'SignalK Alert');
   const prefix = typeof config.titlePrefix === 'string' ? config.titlePrefix.trim() : '';
   if (prefix) title = `${prefix} · ${title}`;
   return title;
+}
+
+function deriveTitle(path, state, config) {
+  return composeTitle(state, path, config);
+}
+
+// --- clickUrls (issue #7) ---
+// Cada entrada asocia un prefijo de path con la URL que abre el telefono al tocar
+// la notificacion. Se normaliza al arrancar: prefijo con "notifications." delante
+// si falta, URL sin la barra final y solo http/https. Una entrada mala se avisa y
+// se ignora: una errata en la configuracion no puede dejar el barco sin avisos.
+function normalizeClickUrls(list, app) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  list.forEach((entry, index) => {
+    const rawUrl = entry && typeof entry.url === 'string' ? entry.url.trim() : '';
+    const rawPrefix = entry && typeof entry.pathPrefix === 'string' ? entry.pathPrefix.trim() : '';
+    if (!rawUrl) {
+      app.error(`[ntfy] clickUrls[${index}]: falta la url. Entrada ignorada.`);
+      return;
+    }
+    if (!/^https?:\/\//.test(rawUrl)) {
+      app.error(`[ntfy] clickUrls[${index}]: la url "${rawUrl}" no empieza por http:// ni https://. Entrada ignorada.`);
+      return;
+    }
+    // Prefijo vacio o "*" es el comodin: vale para cualquier path.
+    let prefix = rawPrefix;
+    if (prefix && prefix !== '*') {
+      if (!prefix.startsWith('notifications.')) prefix = `notifications.${prefix}`;
+    } else {
+      prefix = '*';
+    }
+    out.push({ pathPrefix: prefix, url: rawUrl.replace(/\/+$/, '') });
+  });
+  return out;
+}
+
+// URL de click para un path: gana el prefijo mas largo que encaje por segmentos
+// completos (igual al prefijo o prefijo seguido de punto); el comodin solo se usa
+// si ningun prefijo concreto encaja. Sin coincidencia no se manda click.
+function resolveClickUrl(path, config) {
+  if (!path || !config || !Array.isArray(config.clickUrls)) return undefined;
+  let best = null;
+  let fallback = null;
+  for (const entry of config.clickUrls) {
+    if (!entry || typeof entry.url !== 'string' || !entry.url) continue;
+    const prefix = typeof entry.pathPrefix === 'string' ? entry.pathPrefix : '';
+    if (!prefix || prefix === '*') {
+      if (!fallback) fallback = entry;
+      continue;
+    }
+    if (path === prefix || path.startsWith(`${prefix}.`)) {
+      if (!best || prefix.length > best.pathPrefix.length) best = entry;
+    }
+  }
+  const winner = best || fallback;
+  return winner ? winner.url : undefined;
+}
+
+// Aviso de vuelta a la normalidad de un path avisado: mensaje nuevo, prioridad la
+// del mapa para "normal" (2 por defecto) para no romper modos de concentracion.
+// Se llama con el registro y la marca del filtro ya borrados.
+function enqueueCleared(path, value) {
+  if (!retryQueue) return;
+  let message = 'Back to normal';
+  if (value && value.message) {
+    if (typeof value.message === 'string' && value.message.trim()) message = value.message;
+    else if (typeof value.message === 'object' && Object.keys(value.message).length > 0) message = value.message;
+  }
+  const activeServer = currentConfig.servers.find(s => s.id === currentConfig.activeServerId);
+  const priorityMap = (activeServer && activeServer.priorityMap) || DEFAULT_STATE_PRIORITY_MAP;
+  const priority = priorityMap.normal !== undefined ? priorityMap.normal : 2;
+  retryQueue.enqueue({
+    path,
+    payload: { message, title: composeTitle('CLEARED', path, currentConfig), state: 'normal', path, priority },
+    onSuccess: () => {
+      currentApp.debug(`[ntfy] Aviso de vuelta a normal enviado: ${path}`);
+    },
+    onFailure: (err, info) => {
+      currentApp.error(`[ntfy] Error al enviar aviso de vuelta a normal: ${err.message} (${info.attempts} intento(s))`);
+    }
+  });
 }
 
 // Función para determinar servidor activo
@@ -132,10 +249,14 @@ module.exports = function(app) {
       const oldServerId = currentConfig.activeServerId;
       currentConfig = settings || {};
       
-      // Al arrancar o reconfigurar, el registro del filtro empieza limpio y los
+      // Al arrancar o reconfigurar, los registros empiezan limpios y los
       // reintentos pendientes del arranque anterior se tiran.
       lastSentByPath = new Map();
       pendingRollback.clear();
+      notifiedByPath = new Map();
+      // Las URLs de click se validan aqui y no en cada aviso: lo que llega mal se
+      // avisa una vez en el log al arrancar y no vuelve a molestar.
+      currentConfig.clickUrls = normalizeClickUrls(currentConfig.clickUrls, currentApp);
       if (retryQueue) retryQueue.cancelAll();
       retryQueue = createRetryQueue({
         app: currentApp,
@@ -233,14 +354,30 @@ module.exports = function(app) {
           delta.updates.forEach(update => {
             if (!update?.values) return;
             update.values.forEach(v => {
-              if (!v?.path || !v.value || !v.value.state) return;
-              if (!currentConfig.levels.includes(v.value.state)) return;
-              
+              if (!v?.path) return;
+              const path = v.path;
+              const state = v.value && v.value.state ? v.value.state : null;
               // Filtro anti-duplicados: se evalua por path y solo si esta activado.
               const now = Date.now();
-              const path = v.path;
-              if (!shouldSendForPath(path, v.value.state, currentConfig, now)) {
-                currentApp.debug(`[ntfy] Duplicado silenciado: ${path} (${v.value.state})`);
+              
+              // Vuelta a la normalidad (issue #6). Un valor null o en estado normal
+              // NUNCA sigue el camino normal, ni siquiera con "normal" en levels:
+              // o genera un CLEARED de un path que se aviso antes, o no sale nada.
+              if (!state || state === 'normal') {
+                if (currentConfig.notifyOnClear && forgetNotified(path, now)) {
+                  // La alarma esta resuelta: se borran la marca del filtro y el
+                  // rollback pendiente para que una alarma nueva entre de inmediato.
+                  lastSentByPath.delete(path);
+                  pendingRollback.delete(path);
+                  enqueueCleared(path, v.value);
+                }
+                return;
+              }
+              
+              if (!currentConfig.levels.includes(state)) return;
+              
+              if (!shouldSendForPath(path, state, currentConfig, now)) {
+                currentApp.debug(`[ntfy] Duplicado silenciado: ${path} (${state})`);
                 return;
               }
               // Se marca antes del POST para que una rafaga de deltas no lance varios
@@ -248,13 +385,13 @@ module.exports = function(app) {
               // la cola reintenta el path sigue marcado, y si se agotan los intentos
               // se deshace (ver onFailure).
               const previousSent = currentConfig.filterDuplicates
-                ? markSent(path, v.value.state, now)
+                ? markSent(path, state, now)
                 : undefined;
               if (currentConfig.filterDuplicates && !pendingRollback.has(path)) {
                 pendingRollback.set(path, previousSent);
               }
               
-              let title = v.value.title || deriveTitle(path, v.value.state, currentConfig);
+              let title = v.value.title || deriveTitle(path, state, currentConfig);
               const message = v.value.message || 'No message';
               if (Array.isArray(v.value.method) && v.value.method.length === 0) {
                 title += ' (Silenced)';
@@ -263,11 +400,13 @@ module.exports = function(app) {
               // Envio a traves de la cola de reintentos (5, 15 y 45 s): un fallo de red
               // ya no pierde el aviso, y una notificacion nueva del mismo path sustituye
               // al reintento pendiente. El POST lo hace sender.js, con timeout propio.
-              const state = v.value.state;
               if (!retryQueue) return;   // plugin detenido: no hay cola de envio
+              // Solo los avisos que llegan a la cola cuentan para el CLEARED, y se
+              // anotan aqui (al encolar), no al confirmar el envio.
+              if (currentConfig.notifyOnClear) markNotified(path, state, now);
               retryQueue.enqueue({
                 path,
-                payload: { message, title, state, path },
+                payload: { message, title, state, path, click: resolveClickUrl(path, currentConfig) },
                 onSuccess: () => {
                   // Envio confirmado: la marca del filtro ya es buena.
                   if (currentConfig.filterDuplicates) {
