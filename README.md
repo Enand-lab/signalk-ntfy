@@ -87,6 +87,28 @@ The registry lives in memory, keyed by SignalK path; entries older than 24 hours
 Example use case:  
 “Engine overheating” → Instant push notification on your phone.
 
+#### Delivery retries (v0.0.9+)
+
+A notification used to be lost for good if the HTTP request to ntfy failed. Now a failed delivery is retried after **5, 15 and 45 seconds** (about 65 seconds in total); if every attempt fails, a final error is logged.
+
+Only failures that can heal on their own are retried:
+
+| Failure                                        | Retried |
+|------------------------------------------------|---------|
+| Network error, DNS failure, connection reset    | Yes     |
+| Request timeout                                 | Yes     |
+| HTTP 5xx (server error)                         | Yes     |
+| HTTP 429 (rate limited)                         | Yes     |
+| HTTP 4xx (401, 403...)                          | No — a rejected token or topic is a configuration problem, not a transient one |
+
+Every request also carries a **10-second timeout**: a server that accepts the connection and never answers no longer leaves the delivery hanging. It fails and enters the retry queue like any other network failure.
+
+The queue is keyed by Signal K path: a **new notification for the same path replaces the pending retry** for that path, so a producer that repeats every few seconds during an outage does not pile up stale messages — only the latest one is delivered.
+
+With `filterDuplicates` enabled, the per-path mark only counts once the delivery succeeds: if all retries are exhausted, the mark is rolled back and the next notification for that path is not silenced.
+
+Retries apply to the automatic notifications from `notifications.*`. The `POST /plugins/signalk-ntfy/send` API endpoint stays a **single attempt**: it returns the error to the caller instead of retrying in the background, so the client keeps control of its own retries.
+
 ### 2. Advanced Mode – Bidirectional communication
 
 This is the plugin’s core functionality.  

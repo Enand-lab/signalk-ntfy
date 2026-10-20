@@ -3,7 +3,7 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
-## [0.0.9] - sin publicar
+## [0.0.9] - 2026-10-20
 
 ### Fixed
 - **Una notificacion se perdia cuando el POST a ntfy fallaba**: no habia reintento. Ahora un envio fallido se reintenta a los 5, 15 y 45 s (unos 65 s en total) y, si se agotan, deja un error final en el log. Solo se reintenta en error de red, timeout, HTTP 5xx y HTTP 429; un 4xx (401, 403) es error de configuracion y no se repite.
