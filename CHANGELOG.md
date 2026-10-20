@@ -3,6 +3,20 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [0.0.9] - sin publicar
+
+### Fixed
+- **Una notificacion se perdia cuando el POST a ntfy fallaba**: no habia reintento. Ahora un envio fallido se reintenta a los 5, 15 y 45 s (unos 65 s en total) y, si se agotan, deja un error final en el log. Solo se reintenta en error de red, timeout, HTTP 5xx y HTTP 429; un 4xx (401, 403) es error de configuracion y no se repite.
+- La peticion tiene **timeout de 10 s**: un servidor que acepta la conexion y no contesta ya no deja el envio pendiente, falla y entra en el reintento.
+- Una **notificacion nueva del mismo path sustituye al reintento pendiente** de ese path, de modo que un productor que repite cada pocos segundos durante una caida no acumula envios.
+- Con `filterDuplicates` encendido, la marca del path solo se da por buena cuando el envio tiene exito: si se agotan los reintentos se deshace, y la siguiente notificacion de ese path no se silencia (issue #5, reportado por Peter Petrik).
+- Textos que llegan al telefono o a la UI pasan a ingles, como el README y el formulario: `No message`, ` (Silenced)`, `Main server` y la descripcion del plugin `Sends Signal K notifications to ntfy` (issue #8, reportado por Peter Petrik).
+
+### Notas
+- Sin dependencias nuevas: el timeout usa `AbortController`, nativo en Node >= 16.
+- La ruta de la API `POST /send` sigue siendo un intento unico (ahora tambien con timeout): responde el error a quien llama en lugar de reintentar por detras.
+- Los mensajes de log siguen en espanol.
+
 ## [0.0.8] - 2026-10-19
 
 ### Added
