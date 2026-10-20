@@ -38,7 +38,7 @@ async function sendNotification(app, config, opts) {
   } else if (message && typeof message === 'object') {
     safeMessage = Object.values(message)[0] || JSON.stringify(message);
   } else {
-    safeMessage = String(message || 'Sin mensaje');
+    safeMessage = String(message || 'No message');
   }
   
   const safeTitle = typeof title === 'string' ? title : 'SignalK Alert';

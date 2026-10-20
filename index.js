@@ -120,7 +120,7 @@ module.exports = function(app) {
   plugin = {
     id: 'signalk-ntfy',
     name: 'ntfy Notifications',
-    description: 'Envía notificaciones de SignalK a ntfy.sh',
+    description: 'Sends Signal K notifications to ntfy',
     
     start: (settings, restartPlugin) => {
       const oldServerId = currentConfig.activeServerId;
@@ -132,7 +132,7 @@ module.exports = function(app) {
       if (!currentConfig.servers || !Array.isArray(currentConfig.servers)) {
         currentConfig.servers = [{
           id: 'default',
-          name: 'Servidor Principal',
+          name: 'Main server',
           url: currentConfig.ntfyUrl || 'https://ntfy.sh',
           token: currentConfig.token,
           isDefault: true
@@ -236,9 +236,9 @@ module.exports = function(app) {
                 : undefined;
               
               let title = v.value.title || deriveTitle(v.path, v.value.state, currentConfig);
-              const message = v.value.message || 'Sin mensaje';
+              const message = v.value.message || 'No message';
               if (Array.isArray(v.value.method) && v.value.method.length === 0) {
-                title += ' (Silenciada)';
+                title += ' (Silenced)';
               }
               
               // Enviar notificación con configuración actual (incluyendo path para el filtro)
