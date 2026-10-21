@@ -3,7 +3,7 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
-## [Unreleased]
+## [0.1.0] - 2026-10-21
 
 ### Added
 - **URL de click por path (`clickUrls`, issue #7)**: nueva lista de parejas prefijo/URL en la configuracion. La notificacion reenviada lleva el campo `click` de ntfy, asi que al tocarla el telefono abre la pagina que corresponda (alarma de ancla, dashboard, camara) en vez de la app de ntfy. Coincidencia por segmentos completos del path, gana el prefijo mas largo, `*` o prefijo vacio como comodin, sin coincidencia no se manda click. El prefijo se normaliza con `notifications.` delante si falta, se recorta la barra final de la URL y solo se aceptan `http`/`https`: una entrada invalida se avisa en el log al arrancar y se ignora sin tumbar el plugin. `POST /send` acepta `click` explicito.

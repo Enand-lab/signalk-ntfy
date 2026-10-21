@@ -109,7 +109,7 @@ With `filterDuplicates` enabled, the per-path mark only counts once the delivery
 
 Retries apply to the automatic notifications from `notifications.*`. The `POST /plugins/signalk-ntfy/send` API endpoint stays a **single attempt**: it returns the error to the caller instead of retrying in the background, so the client keeps control of its own retries.
 
-#### Click URL per notification path (`clickUrls`)
+#### Click URL per notification path (`clickUrls`, v0.1.0+)
 
 Tapping a notification normally opens the ntfy app and nothing else. `clickUrls` maps notification paths to a URL that opens instead — the anchor alarm webapp, a dashboard, a camera page. It is an array of `pathPrefix` / `url` pairs, empty by default, so an installation that does not use it behaves exactly as before.
 
@@ -128,7 +128,7 @@ Example:
 
 Notifications sent through `POST /plugins/signalk-ntfy/send` accept an explicit `click` field in the body, for messages that do not come from a `notifications.*` path.
 
-#### Notify when an alert clears (`notifyOnClear`)
+#### Notify when an alert clears (`notifyOnClear`, v0.1.0+)
 
 Off by default. With it on, the plugin remembers every path it has forwarded and, when that same path arrives again as `normal` or as `null` (the producer removed the notification), sends one **`CLEARED: <path words>`** notification and forgets the path. Alerts that were never forwarded produce nothing, which is why this is quieter than adding `normal` to the alert levels.
 

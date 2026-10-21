@@ -69,7 +69,7 @@ Solo necesitas:
 **Ejemplo de uso:**  
 “Sobrecalentamiento del motor” → Notificación inmediata en tu teléfono.
 
-#### URL de click por path (`clickUrls`)
+#### URL de click por path (`clickUrls`, v0.1.0+)
 
 Al tocar una notificación, el teléfono abre la app de ntfy y nada más. `clickUrls` asocia paths de notificación con una URL que se abre en su lugar: la web de la alarma de ancla, un dashboard, la página de una cámara. Es un array de parejas `pathPrefix` / `url`, vacío por defecto: una instalación que no lo usa se comporta exactamente igual que antes.
 
@@ -88,7 +88,7 @@ Ejemplo:
 
 Las notificaciones enviadas por `POST /plugins/signalk-ntfy/send` aceptan un campo `click` explícito en el cuerpo, para mensajes que no vienen de un path `notifications.*`.
 
-#### Aviso al volver a normal (`notifyOnClear`)
+#### Aviso al volver a normal (`notifyOnClear`, v0.1.0+)
 
 Apagado por defecto. Con él encendido, el plugin recuerda cada path del que ha enviado un aviso y, cuando ese mismo path llega otra vez como `normal` o como `null` (el productor borra la notificación), manda un único aviso **`CLEARED: <palabras del path>`** y olvida el path. Las alertas que nunca se reenviaron no producen nada: por eso es más silencioso que añadir `normal` a los niveles de alerta.
 
