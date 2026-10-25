@@ -88,6 +88,17 @@
       },
       "default": []
     },
+    "excludePaths": {
+      "type": "array",
+      "title": "Notification paths to exclude",
+      "description": "Optional. List of notification path prefixes whose notifications are NEVER forwarded (neither the alert levels nor the CLEARED notice). Matching is by complete path segments, so notifications.navigation.anchor does not exclude notifications.navigation.anchorWatch. The leading notifications. may be omitted. Use it to keep an alert cycle on board (webapp siren, tablet) without also ringing the phone. Empty entries, * and bare notifications are ignored and reported in the log at startup.",
+      "items": {
+        "type": "string",
+        "title": "Path prefix",
+        "default": "notifications.navigation.anchor"
+      },
+      "default": []
+    },
     "filterDuplicates": {
       "type": "boolean",
       "title": "Filter duplicate notifications",

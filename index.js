@@ -177,6 +177,45 @@ function resolveClickUrl(path, config) {
   return winner ? winner.url : undefined;
 }
 
+// --- excludePaths ---
+// Lista de prefijos de path que NO se reenvian al telefono. Sirve para dejar un
+// ciclo de avisos a bordo (sirena del webapp, tablet) sin que ademas suene el
+// movil. El criterio es el mismo que el de clickUrls: prefijo por SEGMENTOS
+// completos (igual al path o prefijo seguido de punto), de modo que excluir
+// "notifications.navigation.anchor" no excluye un hermano como
+// "notifications.navigation.anchorWatch".
+// Se normaliza al arrancar (igual que clickUrls): "notifications." delante si
+// falta y sin puntos sobrantes al final. Una entrada vacia, "*" o que se quede
+// en "notifications" excluiria todo el barco: se avisa y se ignora, porque una
+// errata en la configuracion no puede dejar al armador sin avisos.
+function normalizeExcludePaths(list, app) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  list.forEach((entry, index) => {
+    const raw = typeof entry === 'string' ? entry.trim().replace(/\.+$/, '') : '';
+    if (!raw) {
+      app.error(`[ntfy] excludePaths[${index}]: entrada vacia. Entrada ignorada.`);
+      return;
+    }
+    if (raw === '*' || raw === 'notifications') {
+      app.error(`[ntfy] excludePaths: "${raw}" excluiria TODAS las notificaciones. Entrada ignorada.`);
+      return;
+    }
+    // Prefijo con "notifications." delante si falta (igual que clickUrls).
+    const prefix = raw.startsWith('notifications.') ? raw : `notifications.${raw}`;
+    if (out.includes(prefix)) return;   // repetida: no aporta nada
+    out.push(prefix);
+  });
+  return out;
+}
+
+// Devuelve true si el path cae bajo algun prefijo excluido (por segmentos completos).
+// Se consulta antes de encolar, asi que tambien silencia el aviso de "cleared".
+function isExcluded(path, config) {
+  if (!path || !config || !Array.isArray(config.excludePaths)) return false;
+  return config.excludePaths.some(prefix => path === prefix || path.startsWith(`${prefix}.`));
+}
+
 // Aviso de vuelta a la normalidad de un path avisado: mensaje nuevo, prioridad la
 // del mapa para "normal" (2 por defecto) para no romper modos de concentracion.
 // Se llama con el registro y la marca del filtro ya borrados.
@@ -257,6 +296,11 @@ module.exports = function(app) {
       // Las URLs de click se validan aqui y no en cada aviso: lo que llega mal se
       // avisa una vez en el log al arrancar y no vuelve a molestar.
       currentConfig.clickUrls = normalizeClickUrls(currentConfig.clickUrls, currentApp);
+      // Mismo criterio para las exclusiones: se normalizan una vez al arrancar.
+      currentConfig.excludePaths = normalizeExcludePaths(currentConfig.excludePaths, currentApp);
+      if (currentConfig.excludePaths.length > 0) {
+        currentApp.debug(`[ntfy] excludePaths activo: ${currentConfig.excludePaths.join(', ')}`);
+      }
       if (retryQueue) retryQueue.cancelAll();
       retryQueue = createRetryQueue({
         app: currentApp,
@@ -370,6 +414,14 @@ module.exports = function(app) {
             update.values.forEach(v => {
               if (!v?.path) return;
               const path = v.path;
+              // Paths excluidos (excludePaths): no salen al telefono NI en el
+              // ciclo de avisos NI como "cleared". Se mira antes de todo para que
+              // el filtro de duplicados y el registro de notifyOnClear no se
+              // ensucien con paths que nunca se van a enviar.
+              if (isExcluded(path, currentConfig)) {
+                currentApp.debug(`[ntfy] Excluido por excludePaths: ${path}`);
+                return;
+              }
               const state = v.value && v.value.state ? v.value.state : null;
               // Filtro anti-duplicados: se evalua por path y solo si esta activado.
               const now = Date.now();

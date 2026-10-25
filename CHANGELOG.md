@@ -3,6 +3,12 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
+## [Unreleased]
+
+### Added
+- **Paths excluidos (`excludePaths`)**: nueva lista de prefijos de path en la configuracion cuyas notificaciones no se reenvian nunca al telefono, ni en el ciclo de niveles ni en el aviso de vuelta a normal (`notifyOnClear`). Sirve para dejar un ciclo de avisos a bordo (sirena del webapp, tablet) sin que suene ademas el movil. Mismo criterio de coincidencia que `clickUrls` (prefijo por segmentos completos: `notifications.security.deadmansswitch` excluye sus hijos pero no un hermano como `...deadmansswitchWatch`); el `notifications.` inicial es opcional, los puntos finales se recortan y las entradas `*`, vacias o `notifications` se avisan en el log y se ignoran. El path excluido se descarta antes del filtro de duplicados y del registro de `notifyOnClear`. Con la lista vacia el comportamiento es el de la 0.1.0.
+- Pruebas del filtro de exclusion en `test/exclude-paths.test.js` (`npm test`): prefijo exacto, path por debajo del prefijo, hermano que no se excluye, aviso de `CLEARED` excluido y normalizacion de entradas.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

@@ -88,6 +88,15 @@ Ejemplo:
 
 Las notificaciones enviadas por `POST /plugins/signalk-ntfy/send` aceptan un campo `click` explícito en el cuerpo, para mensajes que no vienen de un path `notifications.*`.
 
+#### Excluir paths de notificación (`excludePaths`)
+
+Hay avisos que solo sirven a bordo (la sirena del webapp de Signal K, una tablet) y no deben sonar además en el teléfono. `excludePaths` es un array de prefijos de path cuyas notificaciones **no** se reenvían nunca: ni los niveles de alerta del plugin ni el aviso de vuelta a normal de `notifyOnClear`. Vacío por defecto: una instalación que no lo usa se comporta exactamente igual que antes.
+
+- La coincidencia usa **la misma regla que `clickUrls`**: segmentos completos del path. Así, el prefijo `notifications.security.deadmansswitch` vale para ese path y para sus hijos (`…deadmansswitch.sub`), pero no para un hermano que solo empieza igual (`…deadmansswitchWatch`).
+- El `notifications.` inicial se puede omitir; los puntos finales se recortan y las entradas repetidas se colapsan.
+- Las entradas que silenciarían el barco entero — `*`, una cadena vacía o un `notifications` pelado — se avisan en el log al arrancar y se ignoran.
+- Un path excluido se descarta antes del filtro de duplicados: no consume intervalos ni entra en el registro de `notifyOnClear`.
+
 #### Aviso al volver a normal (`notifyOnClear`, v0.1.0+)
 
 Apagado por defecto. Con él encendido, el plugin recuerda cada path del que ha enviado un aviso y, cuando ese mismo path llega otra vez como `normal` o como `null` (el productor borra la notificación), manda un único aviso **`CLEARED: <palabras del path>`** y olvida el path. Las alertas que nunca se reenviaron no producen nada: por eso es más silencioso que añadir `normal` a los niveles de alerta.

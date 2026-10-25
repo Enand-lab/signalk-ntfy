@@ -128,6 +128,15 @@ Example:
 
 Notifications sent through `POST /plugins/signalk-ntfy/send` accept an explicit `click` field in the body, for messages that do not come from a `notifications.*` path.
 
+#### Exclude notification paths (`excludePaths`)
+
+Notifications for some paths are only useful on board (a siren in the Signal K webapp, a tablet) and should not ring the phone as well. `excludePaths` is an array of notification path prefixes whose notifications are **never** forwarded — neither the alert levels of this plugin nor the `CLEARED` notice of `notifyOnClear`. Empty by default: an installation that does not use it behaves exactly as before.
+
+- Matching uses the **same rule as `clickUrls`**: whole path segments, so the prefix `notifications.security.deadmansswitch` matches that path and its children (`…deadmansswitch.sub`), but not a sibling whose name merely starts the same way (`…deadmansswitchWatch`).
+- The leading `notifications.` may be omitted; trailing dots are trimmed and duplicates are collapsed.
+- Entries that would silence the whole vessel — `*`, an empty string or a bare `notifications` — are reported in the log at startup and ignored.
+- An excluded path is dropped before the duplicate filter, so it does not consume cooldowns nor enter the `notifyOnClear` registry.
+
 #### Notify when an alert clears (`notifyOnClear`, v0.1.0+)
 
 Off by default. With it on, the plugin remembers every path it has forwarded and, when that same path arrives again as `normal` or as `null` (the producer removed the notification), sends one **`CLEARED: <path words>`** notification and forgets the path. Alerts that were never forwarded produce nothing, which is why this is quieter than adding `normal` to the alert levels.
