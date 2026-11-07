@@ -485,6 +485,14 @@ module.exports = function(app) {
     
     schema: require('./plugin-config.schema.json'),
     
+    // Display hints for the Admin UI form. A widget is chosen here, not in
+    // the JSON schema: "format" is validated as a JSON Schema format, and
+    // the form's validator warns about an unknown one and ignores it. The
+    // checkbox widget applies to an array of enum values with uniqueItems.
+    uiSchema: {
+      levels: { 'ui:widget': 'checkboxes' }
+    },
+    
     registerWithRouter: function(router) {
       registerApi(currentApp, currentConfig, sendNotification, router);
       currentApp.debug('[ntfy] API registrada correctamente');
