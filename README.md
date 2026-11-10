@@ -149,6 +149,17 @@ Off by default. With it on, the plugin remembers every path it has forwarded and
 - `titlePrefix` applies to the clear title too.
 - This version sends a **new message**: it does not use ntfy's `sequence_id` / `message_clear` to update or dismiss the original notification.
 
+#### Notify about alerts already active at start (`notifyActiveOnStart`, v0.2.0+)
+
+When the plugin starts — and that includes every settings save, which restarts it — Signal K hands it the current value of every notification path before any live update. This is the cache replay. If an alarm is already active at that moment, it is announced again unless this option is off.
+
+On by default, so an installation that does not set it keeps the 0.1.0 behaviour.
+
+- With it off, only alerts raised or changed **after** the start are sent: an alarm that was already ringing when the plugin restarted is not repeated.
+- The replay is delivered synchronously inside the subscription call, so it is recognised by a flag and not by comparing timestamps — a producer with a wrong clock cannot affect it.
+- Nothing else changes: live updates, `filterDuplicates`, `notifyOnClear`, `clickUrls`, `excludePaths`, the retry queue and the API behave the same with either value.
+- Signal K 2.37.0 and later deliver this replay with security enabled too. On 2.36.0 and earlier it reached the plugin only on a server without security, so the option has no visible effect there.
+
 ### 2. Advanced Mode – Bidirectional communication
 
 This is the plugin’s core functionality.  

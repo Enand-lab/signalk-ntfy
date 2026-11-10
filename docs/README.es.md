@@ -109,6 +109,17 @@ Apagado por defecto. Con él encendido, el plugin recuerda cada path del que ha 
 - `titlePrefix` se aplica también al título del aviso de vuelta a normal.
 - Esta versión manda un **mensaje nuevo**: no usa `sequence_id` ni `message_clear` de ntfy para actualizar o descartar la notificación original.
 
+#### Aviso de alertas ya activas al arrancar (`notifyActiveOnStart`, v0.2.0+)
+
+Cuando el plugin arranca —y eso incluye cada vez que se guarda la configuración, que lo reinicia— Signal K le entrega el valor actual de todos los paths de notificación antes de cualquier actualización en vivo. Es el replay de la caché. Si en ese momento hay una alarma activa, se vuelve a anunciar salvo que esta opción esté apagada.
+
+Encendida por defecto: una instalación que no la toque conserva el comportamiento de la 0.1.0.
+
+- Con ella apagada solo salen las alertas levantadas o cambiadas **después** del arranque: una alarma que ya estaba sonando cuando el plugin se reinició no se repite.
+- El replay se entrega de forma síncrona dentro de la llamada de suscripción, así que se reconoce por una bandera y no comparando marcas de tiempo: un productor con el reloj mal no puede afectarle.
+- Nada más cambia: las actualizaciones en vivo, `filterDuplicates`, `notifyOnClear`, `clickUrls`, `excludePaths`, la cola de reintentos y la API se comportan igual con cualquiera de los dos valores.
+- Signal K 2.37.0 y posteriores entregan ese replay también con seguridad activada. En la 2.36.0 y anteriores solo llegaba al plugin en un servidor sin seguridad, así que ahí la opción no tiene efecto visible.
+
 ### 2. Modo avanzado – Comunicación bidireccional
 
 Esta es la funcionalidad principal del plugin.  
