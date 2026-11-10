@@ -107,6 +107,12 @@
       "description": "Sends one CLEARED notification when a path that was forwarded earlier comes back as normal or null. Paths that were never forwarded produce nothing. A notification that is normal never follows the normal path, even if normal is listed in the alert levels.",
       "default": false
     },
+    "notifyActiveOnStart": {
+      "type": "boolean",
+      "title": "Notify about alerts already active when the plugin starts",
+      "description": "When the plugin starts, including after a settings save, Signal K delivers the current value of every notification path. With this on, each alert that is already active at one of the selected levels is sent again. With it off, only alerts raised or changed after the start are sent. Signal K 2.37.0 and later deliver these values with security enabled as well; earlier versions delivered them only on servers without security.",
+      "default": true
+    },
     "levels": {
       "type": "array",
       "title": "Alert levels to send",

@@ -343,6 +343,18 @@ module.exports = function(app) {
         subscribe: [{ path: 'notifications.*', period: 1000 }]
       };
       
+      // The server replays the cached value of every matching path to a new
+      // subscription, synchronously inside subscribe() and before any live
+      // delta (subscriptionmanager.ts, handleSubscribeRow). A notification that
+      // is already active is therefore delivered again each time the plugin
+      // starts, including after every settings save. Since Signal K 2.37.0
+      // (SignalK/signalk-server#3280) this also happens with security enabled;
+      // before, the replay reached a plugin only on a server without security.
+      // While this flag is set, the callback is handling that replay, so it
+      // can be told apart from live deltas without comparing timestamps.
+      let replayingCache = true;
+      const skipReplay = currentConfig.notifyActiveOnStart === false;
+      
       currentApp.subscriptionmanager.subscribe(
         subscription,
         unsubscribes,
@@ -351,6 +363,8 @@ module.exports = function(app) {
         },
         (delta) => {
           if (!delta?.updates) return;
+          // Alerts already active at start were announced before the restart.
+          if (replayingCache && skipReplay) return;
           delta.updates.forEach(update => {
             if (!update?.values) return;
             update.values.forEach(v => {
@@ -428,6 +442,9 @@ module.exports = function(app) {
           });
         }
       );
+      // subscribe() has returned, so the cache replay is over: every delta
+      // from here on is live.
+      replayingCache = false;
       
       if (currentConfig.listenForCommands) {
         listenerInstance = startListener(currentApp, currentConfig);
