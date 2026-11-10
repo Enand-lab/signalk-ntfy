@@ -3,11 +3,18 @@
 All notable changes to the `signalk-ntfy` plugin are documented in this file.  
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) standards.
 
-## [Unreleased]
+## [0.2.0] - 2026-11-10
 
 ### Added
 - **Paths excluidos (`excludePaths`)**: nueva lista de prefijos de path en la configuracion cuyas notificaciones no se reenvian nunca al telefono, ni en el ciclo de niveles ni en el aviso de vuelta a normal (`notifyOnClear`). Sirve para dejar un ciclo de avisos a bordo (sirena del webapp, tablet) sin que suene ademas el movil. Mismo criterio de coincidencia que `clickUrls` (prefijo por segmentos completos: `notifications.security.deadmansswitch` excluye sus hijos pero no un hermano como `...deadmansswitchWatch`); el `notifications.` inicial es opcional, los puntos finales se recortan y las entradas `*`, vacias o `notifications` se avisan en el log y se ignoran. El path excluido se descarta antes del filtro de duplicados y del registro de `notifyOnClear`. Con la lista vacia el comportamiento es el de la 0.1.0.
+- **Aviso de alertas ya activas al arrancar (`notifyActiveOnStart`)**: encendido por defecto. Al arrancar, y tambien cada vez que se guarda la configuracion (que reinicia el plugin), Signal K entrega el valor actual de todos los paths de notificacion antes de cualquier delta en vivo. Con la opcion encendida cada alerta ya activa en uno de los niveles elegidos se vuelve a anunciar; apagada, solo salen las alertas levantadas o cambiadas despues del arranque. El replay se reconoce por una bandera puesta durante `subscribe()` (la entrega es sincrona), sin comparar marcas de tiempo: un productor con el reloj mal no puede afectarle. Signal K 2.37.0 y posteriores entregan ese replay tambien con seguridad activada; en la 2.36.0 y anteriores solo llegaba al plugin en un servidor sin seguridad, asi que ahi la opcion no tiene efecto visible. Contribucion de Peter Petrik (PR #10).
 - Pruebas del filtro de exclusion en `test/exclude-paths.test.js` (`npm test`): prefijo exacto, path por debajo del prefijo, hermano que no se excluye, aviso de `CLEARED` excluido y normalizacion de entradas.
+
+### Fixed
+- **Los niveles de alerta se dibujan como casillas, sin el aviso de formato desconocido**: `levels` llevaba `"format": "checkboxes"`, que el validador del formulario del Admin UI no conoce: avisaba dos veces en cada guardado (`unknown format "checkboxes" ignored in schema at path ...`) y lo ignoraba, dibujando el campo como una lista con botones de anadir, quitar y mover. Ahora el esquema usa `uniqueItems` y el plugin declara `uiSchema` con `ui:widget: checkboxes`, que es donde el formulario espera la pista del widget. La clave, el enum, el valor por defecto y el formato guardado de `levels` no cambian. Contribucion de Peter Petrik (PR #12).
+
+### Notas
+- Con `notifyActiveOnStart` en su valor por defecto, `excludePaths` vacio y `levels` sin tocar, el comportamiento es el de la 0.1.0: sin cambios en `filterDuplicates`, `notifyOnClear`, `clickUrls` ni en la cola de reintentos.
 
 ## [0.1.0] - 2026-10-21
 
