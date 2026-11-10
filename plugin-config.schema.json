@@ -116,7 +116,7 @@
     "levels": {
       "type": "array",
       "title": "Alert levels to send",
-      "format": "checkboxes",
+      "uniqueItems": true,
       "items": {
         "type": "string",
         "enum": ["normal", "alert", "warn", "alarm", "emergency"]
